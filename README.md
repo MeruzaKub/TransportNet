@@ -2,4 +2,4 @@
 
 ## Nash-Wardrop equilibrium. 
 
-Equilibrium distribution of traffic flows is founded. 
+Equilibrium distribution of traffic flows is found. 
