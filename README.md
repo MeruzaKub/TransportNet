@@ -9,8 +9,7 @@ The following methods are implemented:
 3.	Universal method of similar triangles [[arXiv:1701.02473](https://arxiv.org/ftp/arxiv/papers/1701/1701.02473.pdf)].
 
 More information about models can be found in [[Nesterov-de Palma](https://link.springer.com/article/10.1023/A:1025350419398)] and [[Beckmann](https://cowles.yale.edu/sites/default/files/files/pub/misc/specpub-beckmann-mcguire-winsten.pdf)].
-Experiments
-Python Notebook [Anaheim_Experiments.ipynb](https://github.com/MeruzaKub/TransportNet/blob/master/Stable%20Dynamic%20%26%20Beckman/Anaheim_Experiments.ipynb) contains code of experiments on comparison of the above methods and Frank-Wolfe algorithm (only for Beckmann model).
+[Anaheim_Experiments.ipynb](https://github.com/MeruzaKub/TransportNet/blob/master/Stable%20Dynamic%20%26%20Beckman/Anaheim_Experiments.ipynb) contains code of experiments on comparison of the above methods and Frank-Wolfe algorithm (only for Beckmann model).
 
 Convergence process on 10 000 iterations for Stable Dynamic model:
 ![](methods_stable_dynamic.png)
