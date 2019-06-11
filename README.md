@@ -14,5 +14,5 @@ More information about models can be found in [[Nesterov-de Palma](https://link.
 Convergence process on 10 000 iterations for Stable Dynamic model:
 ![](methods_stable_dynamic.png)
 
-Convergence process on 8000 iterations for Beckmann model (+ Frank-Wolfe method):
+Convergence process on 8000 iterations for Beckmann model (+ Frank-Wolfe algorithm):
 ![](methods_beckmann.png)
