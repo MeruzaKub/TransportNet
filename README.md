@@ -13,7 +13,7 @@ Experiments
 Python Notebook [Anaheim_Experiments.ipynb](https://github.com/MeruzaKub/TransportNet/blob/master/Stable%20Dynamic%20%26%20Beckman/Anaheim_Experiments.ipynb) contains code of experiments on comparison of the above methods and Frank-Wolfe algorithm (only for Beckman’s model).
 
 Convergence process on 10 000 iterations for Stable Dynamic model:
-![]
+![](methods_stable_dynamic.png)
 
 Convergence process on 8000 iterations for Beckman’s model (+ Frank-Wolfe method):
-![]
+![](methods_beckman.png)
