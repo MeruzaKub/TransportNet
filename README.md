@@ -16,4 +16,4 @@ Convergence process on 10 000 iterations for Stable Dynamic model:
 ![](methods_stable_dynamic.png)
 
 Convergence process on 8000 iterations for Beckmann model (+ Frank-Wolfe method):
-![](methods_beckman.png)
+![](methods_beckmann.png)
