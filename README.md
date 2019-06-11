@@ -4,7 +4,7 @@ The project contains implementations of several primal-dual subgradient methods 
 Results of experiments on [Anaheim transport network](https://github.com/bstabler/TransportationNetworks) are included.
 
 The following methods are implemented:
-1.	Subgradient method with adaptive step size [arXiv:1604.08183](https://arxiv.org/ftp/arxiv/papers/1604/1604.08183.pdf)
+1.	Subgradient method with adaptive step size [[arXiv:1604.08183](https://arxiv.org/ftp/arxiv/papers/1604/1604.08183.pdf)]
 2.	Universal gradient method [ref](http://www.optimization-online.org/DB_FILE/2013/04/3833.pdf)
 3.	Universal method of similar triangles [arXiv:1701.02473](https://arxiv.org/ftp/arxiv/papers/1701/1701.02473.pdf).
 
