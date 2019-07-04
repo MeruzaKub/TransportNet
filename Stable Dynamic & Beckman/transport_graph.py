@@ -1,7 +1,8 @@
 # Attention: as shown on the table above
 # nodes indexed from 0 to ...
 # edges indexed from 0 to ...
-from graph_tool.all import *
+import graph_tool.all as gt
+import graph_tool.topology as gtt
 import numpy as np
 import math
 
@@ -14,7 +15,7 @@ class TransportGraph:
         self.links_number = graph_data['kLinksNumber']
         self.max_path_length = maxpath_const * int(math.sqrt(self.links_number))
         
-        self.graph = Graph(directed=True)
+        self.graph = gt.Graph(directed=True)
         #nodes indexed from 0 to V-1
         vlist = self.graph.add_vertex(self.nodes_number)
         # let's create some property maps
@@ -61,6 +62,15 @@ class TransportGraph:
     #source, target and index of an edge
     def out_edges(self, node_index):
         return self.graph.get_out_edges(node_index)
+    
+    def shortest_distances(self, source, targets, times):
+        ep_time_map = self.graph.new_edge_property("double", vals = times)
+        distances, pred_map = gtt.shortest_distance(g = self.graph,
+                                                    source = source,
+                                                    target = targets,
+                                                    weights = ep_time_map,
+                                                    pred_map = True)
+        return distances, pred_map.a
 
 #    def nodes_number(self):
 #        return self.nodes_number

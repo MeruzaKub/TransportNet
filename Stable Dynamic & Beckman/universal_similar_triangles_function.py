@@ -141,5 +141,6 @@ def universal_similar_triangles_function(phi_big_oracle, prox_h, primal_dual_ora
         print('Primal_func_value = {:g}'.format(primal_func_value))
         print('Duality_gap / Duality_gap_init = {:g}'.format(duality_gap / duality_gap_init))
         print('Phi_big_oracle elapsed time: {:.0f} sec'.format(phi_big_oracle.time))
+        print('Inner iterations total number: ' + str(sum(inner_iters_history)))
     
     return result

@@ -4,7 +4,6 @@ from collections import defaultdict
 import numpy as np
 import time
 from numba import njit
-import graph_tool.topology as gtt
 
 
 @njit
@@ -83,16 +82,7 @@ class AutomaticOracle(BaseOracle):
         
     
     def update_shortest_paths(self, t_parameter):
-        #define order of vertices
-        graph_tool_obj = self.graph.get_graphtool()
-        ep_time_map = graph_tool_obj.new_edge_property("double",
-                                                       vals = t_parameter)
-        self.distances, pred_map = gtt.shortest_distance(g = graph_tool_obj,
-                                                         source = self.source_index,
-                                                         target = self.corr_targets,
-                                                         weights = ep_time_map,
-                                                         pred_map = True)
-        self.pred_map = pred_map.a
+        self.distances, self.pred_map = self.graph.shortest_distances(self.source_index, self.corr_targets, t_parameter)
 
 
 class PhiBigOracle(BaseOracle):
