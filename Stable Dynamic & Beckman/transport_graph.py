@@ -57,11 +57,11 @@ class TransportGraph:
         
     #source, target and index of an edge
     def in_edges(self, node_index):
-        return self.graph.get_in_edges(node_index)
+        return self.graph.get_in_edges(node_index, [self.graph.edge_index])
     
     #source, target and index of an edge
     def out_edges(self, node_index):
-        return self.graph.get_out_edges(node_index)
+        return self.graph.get_out_edges(node_index, [self.graph.edge_index])
     
     def shortest_distances(self, source, targets, times):
         ep_time_map = self.graph.new_edge_property("double", vals = times)

@@ -2,8 +2,8 @@ from math import sqrt
 import numpy as np
 
 def universal_gradient_descent_function(phi_big_oracle, prox_h, primal_dual_oracle,
-                                         t_start, L_init = None, max_iter = 1000,
-                                         eps = 1e-5, eps_abs = None, verbose = False):
+                                        t_start, L_init = None, max_iter = 1000,
+                                        eps = 1e-5, eps_abs = None, verbose = False):
     iter_step = 100
     if L_init is not None:
         L_value = L_init
@@ -21,20 +21,21 @@ def universal_gradient_descent_function(phi_big_oracle, prox_h, primal_dual_orac
 
     primal_func_history = []
     dual_func_history = []
-    inner_iters_history = []
     duality_gap_history = []
+    inner_iters_history = []
         
     success = False
+    inner_iters_num = 0
     
-    for it_counter in range(1,max_iter+1):
-        inner_iters_num = 1
+    for it_counter in range(1, max_iter+1):
         while True:
             alpha = 1 / L_value
 
             phi_grad_t = phi_big_oracle.grad(t_prev)
             t = prox_h(t_prev - alpha * phi_grad_t, alpha)
 
-            if it_counter == 1 and inner_iters_num == 1:
+            inner_iters_num += 1
+            if inner_iters_num == 1:
                 flows_weighted = - phi_grad_t
                 duality_gap_init = primal_dual_oracle.duality_gap(t, flows_weighted)
                 if eps_abs is None:
@@ -53,7 +54,6 @@ def universal_gradient_descent_function(phi_big_oracle, prox_h, primal_dual_orac
                 break
             else:
                 L_value *= 2
-                inner_iters_num += 1
 
         L_value /= 2
         
@@ -71,9 +71,9 @@ def universal_gradient_descent_function(phi_big_oracle, prox_h, primal_dual_orac
         duality_gap_history.append(duality_gap)
         inner_iters_history.append(inner_iters_num)
         
-        #if duality_gap < eps_abs:
-        #    success = True
-        #    break
+        if duality_gap < eps_abs:
+            success = True
+            break
         
         if verbose and (it_counter == 1 or (it_counter) % iter_step == 0):
             print('\nIterations number: ' + str(it_counter))

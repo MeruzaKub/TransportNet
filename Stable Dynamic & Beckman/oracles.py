@@ -4,22 +4,22 @@ from collections import defaultdict
 import numpy as np
 import time
 from numba import njit
+from numba.typed import List
 
 
 @njit
 def get_tree_order(nodes_number, targets, pred_arr):
     #get nodes visiting order for flow calculation
     visited = np.zeros(nodes_number, dtype = np.bool_)
-    sorted_vertices = [0] * 0
+    sorted_vertices = List()
     for vertex in targets:
-        temp = []
+        pos = 0
         while (not visited[vertex]):
             visited[vertex] = True
             if pred_arr[vertex] != vertex:
-                temp.append(vertex)
+                sorted_vertices.insert(pos, vertex)
+                pos += 1
                 vertex = pred_arr[vertex]
-        sorted_vertices[0:0] = temp
-        
     return sorted_vertices
 
 @njit
@@ -75,7 +75,7 @@ class AutomaticOracle(BaseOracle):
     #correct answer if func calculated flows!
     def grad(self, t_parameter):
         sorted_vertices = get_tree_order(self.graph.nodes_number, self.corr_targets, self.pred_map)
-        pred_edges = [self.graph.pred_to_edge[vertex][self.pred_map[vertex]] for vertex in sorted_vertices]
+        pred_edges = np.array([self.graph.pred_to_edge[vertex][self.pred_map[vertex]] for vertex in sorted_vertices])
         flows = get_flows(self.graph.nodes_number, self.graph.links_number, 
                           self.corr_targets, self.corr_values, self.pred_map, pred_edges, sorted_vertices)
         return - flows
