@@ -1,9 +1,11 @@
 from math import sqrt
 import numpy as np
+from history import History
 
 def universal_gradient_descent_function(phi_big_oracle, prox_h, primal_dual_oracle,
                                         t_start, L_init = None, max_iter = 1000,
-                                        eps = 1e-5, eps_abs = None, verbose = False):
+                                        eps = 1e-5, eps_abs = None, 
+                                        verbose = False, save_history = False):
     iter_step = 100
     if L_init is not None:
         L_value = L_init
@@ -17,13 +19,9 @@ def universal_gradient_descent_function(phi_big_oracle, prox_h, primal_dual_orac
     grad_sum = np.zeros(len(t_start))
     flows_weighted = np.zeros(len(t_start))
     
-    duality_gap_init = None
+    if save_history:
+        history = History('iter', 'primal_func', 'dual_func', 'dual_gap', 'inner_iters')
 
-    primal_func_history = []
-    dual_func_history = []
-    duality_gap_history = []
-    inner_iters_history = []
-        
     success = False
     inner_iters_num = 0
     
@@ -66,32 +64,28 @@ def universal_gradient_descent_function(phi_big_oracle, prox_h, primal_dual_orac
         dual_func_value = primal_dual_oracle.dual_func_value(t)
         duality_gap = primal_dual_oracle.duality_gap(t, flows_weighted)
         
-        primal_func_history.append(primal_func_value)
-        dual_func_history.append(dual_func_value)
-        duality_gap_history.append(duality_gap)
-        inner_iters_history.append(inner_iters_num)
+        if save_history:
+            history.update(it_counter, primal_func_value, dual_func_value, duality_gap, inner_iters_num)
         
         if duality_gap < eps_abs:
             success = True
             break
         
         if verbose and (it_counter == 1 or (it_counter) % iter_step == 0):
-            print('\nIterations number: ' + str(it_counter))
-            print('Inner iterations number: ' + str(inner_iters_num))
+            print('\nIterations number: {:d}'.format(it_counter))
+            print('Inner iterations number: {:d}'.format(inner_iters_num))
             print('Primal_func_value = {:g}'.format(primal_func_value))
             print('Dual_func_value = {:g}'.format(dual_func_value))
             print('Duality_gap = {:g}'.format(duality_gap))
             print('Duality_gap / Duality_gap_init = {:g}'.format(duality_gap / duality_gap_init))
             
-            
+    
     result = {'times': t,
               'flows': flows_weighted,
-              'iter_num': it_counter,
-              'duality_gap_history': duality_gap_history,
-              'inner_iters_history': inner_iters_history,
-              'primal_func_history': primal_func_history,
-              'dual_func_history': dual_func_history,
-             }
+              'iter_num': it_counter}
+    
+    if save_history:
+        result['history'] = history.dict
     
     if success:
         result['res_msg'] = 'success'
@@ -100,7 +94,7 @@ def universal_gradient_descent_function(phi_big_oracle, prox_h, primal_dual_orac
         
     if verbose:
         if success:
-            print('\nSuccess! Iterations number: ' + str(it_counter))
+            print('\nSuccess! Iterations number: {:d}'.format(it_counter))
         else:
             print('\nIterations number exceeded!')
         print('Primal_func_value = {:g}'.format(primal_func_value))

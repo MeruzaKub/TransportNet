@@ -20,7 +20,7 @@ class Model:
         self.mu = mu
         self.rho = rho
         
-    def find_equilibrium(self, solver_name = 'ustf', solver_kwargs = {}, verbose = False):
+    def find_equilibrium(self, solver_name = 'ustf', solver_kwargs = {}, verbose = False, save_history = False):
         if solver_name == 'fwa':
             solver_func = fwa.frank_wolfe_algorithm
             starting_msg = 'Frank-Wolfe algorithm...'
@@ -56,11 +56,11 @@ class Model:
             result = solver_func(phi_big_oracle,
                                  primal_dual_calculator, 
                                  t_start = self.graph.freeflow_times,
-                                 verbose = verbose, **solver_kwargs)
+                                 verbose = verbose, save_history = save_history, **solver_kwargs)
         else:
             result = solver_func(phi_big_oracle, prox_h,
                                  primal_dual_calculator, 
                                  t_start = self.graph.freeflow_times,
-                                 verbose = verbose, **solver_kwargs)
+                                 verbose = verbose, save_history = save_history, **solver_kwargs)
 
         return result
