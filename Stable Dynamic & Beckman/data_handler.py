@@ -11,14 +11,12 @@ class DataHandler:
         with open(file_name, 'r') as myfile:
             data = myfile.read()
 
-        graph_data['kNodesNumber'] = scanf('<NUMBER OF NODES> %d', data)[0]
-        graph_data['kLinksNumber'] = scanf('<NUMBER OF LINKS> %d', data)[0]
+        graph_data['nodes number'] = scanf('<NUMBER OF NODES> %d', data)[0]
+        graph_data['links number'] = scanf('<NUMBER OF LINKS> %d', data)[0]
+        graph_data['zones number'] = scanf('<NUMBER OF ZONES> %d', data)[0]
         
-
-        headlist = re.compile("\t"
-                             "[a-zA-Z ]+"
-                             "[\(\)\/\w]*").findall(data)
-
+        headlist = re.search(r'~[\s\w]+[\s]*;', data)
+        print(headlist[0])
         
         my_headlist = ['Init node', 'Term node', 'Capacity', 'Free Flow Time']
         
@@ -53,22 +51,15 @@ class DataHandler:
             trips_data = myfile.read()
         
         total_od_flow = scanf('<TOTAL OD FLOW> %f', trips_data)[0]
-
-        #kZonesNumber = scanf('<NUMBER OF ZONES> %d', trips_data)[0]
-        p = re.compile("Origin[ \t]+[\d]+")
-        origins_list = p.findall(trips_data)
-        origins = np.array([int(re.sub('[a-zA-Z ]', '', line)) for line in origins_list])
-
-        p = re.compile("\n"
-                       "[0-9.:; \n]+"
-                       "\n\n")
-        res_list = p.findall(trips_data)
-        res_list = [re.sub('[\n \t]', '', line) for line in res_list]
+        #zones_number = scanf('<NUMBER OF ZONES> %d', trips_data)[0]
+        
+        origins_data = re.findall(r'Origin[\s\d.:;]+', trips_data)
 
         graph_correspondences = {}
-        for origin_index in range(0, len(origins)):
-            origin_correspondences = res_list[origin_index].strip('[\n;]').split(';')
-            graph_correspondences[origins[origin_index]] = dict([scanf("%d:%f", line)
+        for data in origins_data:
+            origin_index = scanf('Origin %d', data)[0]
+            origin_correspondences = re.findall(r'[\d]+\s+:[\d.\s]+;', data)
+            graph_correspondences[origin_index] = dict([scanf('%d : %f', line)
                                   for line in origin_correspondences])
         return graph_correspondences, total_od_flow
 

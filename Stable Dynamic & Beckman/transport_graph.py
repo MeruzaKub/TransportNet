@@ -11,8 +11,8 @@ class TransportGraph:
     def __init__(self, graph_data, maxpath_const = 3):
         graph_table = graph_data['graph_table']
 
-        self.nodes_number = graph_data['kNodesNumber']
-        self.links_number = graph_data['kLinksNumber']
+        self.nodes_number = graph_data['nodes number']
+        self.links_number = graph_data['links number']
         self.max_path_length = maxpath_const * int(math.sqrt(self.links_number))
         
         self.graph = gt.Graph(directed=True)
