@@ -23,15 +23,15 @@ class TransportGraph:
         ep_capacity = self.graph.new_edge_property("double")
         
         #define data for edge properties
-        self.capacities = np.array(graph_table[['Capacity']], dtype = 'float64').flatten()
-        self.freeflow_times = np.array(graph_table[['Free Flow Time']], dtype = 'float64').flatten()  
+        self.capacities = np.array(graph_table[['capacity']], dtype = 'float64').flatten()
+        self.freeflow_times = np.array(graph_table[['free_flow_time']], dtype = 'float64').flatten()  
 
         #adding edges to the graph
-        inits = np.array(graph_table[['Init node']], dtype = 'int64').flatten()
-        terms = np.array(graph_table[['Term node']], dtype = 'int64').flatten()
+        inits = np.array(graph_table[['init_node']], dtype = 'int64').flatten()
+        terms = np.array(graph_table[['term_node']], dtype = 'int64').flatten()
         for index in range(self.links_number):
-            init_index = graph_table['Init node'][index] - 1
-            term_index = graph_table['Term node'][index] - 1
+            init_index = graph_table['init_node'][index] - 1
+            term_index = graph_table['term_node'][index] - 1
             edge = self.graph.add_edge(self.graph.vertex(init_index),
                                        self.graph.vertex(term_index))
             ep_freeflow_time[edge] = self.freeflow_times[index]
