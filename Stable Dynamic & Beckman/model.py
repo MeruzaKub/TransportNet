@@ -1,4 +1,6 @@
 # model parameters:
+import copy
+import numpy as np
 import transport_graph as tg
 
 import oracles
@@ -14,11 +16,35 @@ import frank_wolfe_algorithm as fwa
 
 class Model:
     def __init__(self, graph_data, graph_correspondences, total_od_flow, mu = 0.25, rho = 0.15):
-        self.graph = tg.TransportGraph(graph_data)
-        self.graph_correspondences = graph_correspondences
         self.total_od_flow = total_od_flow
         self.mu = mu
         self.rho = rho
+        self.inds_to_nodes = self._index_nodes_(graph_data['graph_table'], graph_correspondences) 
+        self.graph = tg.TransportGraph(self.model_graph_table, len(self.inds_to_nodes), graph_data['links number'])
+        
+    def _index_nodes_(self, graph_table, graph_correspondences):
+        self.model_graph_table = graph_table.copy()
+        inits = np.unique(self.model_graph_table['init_node'][self.model_graph_table['init_node_thru'] == False])
+        terms = np.unique(self.model_graph_table['term_node'][self.model_graph_table['term_node_thru'] == False])
+        through_nodes = np.unique([self.model_graph_table['init_node'][self.model_graph_table['init_node_thru'] == True], 
+                                   self.model_graph_table['term_node'][self.model_graph_table['term_node_thru'] == True]])
+        
+        nodes = np.concatenate((inits, through_nodes, terms))
+        nodes_inds = list(zip(nodes, np.arange(len(nodes))))
+        init_to_ind = dict(nodes_inds[ : len(inits) + len(through_nodes)])
+        term_to_ind = dict(nodes_inds[len(inits) : ])
+        
+        self.model_graph_table['init_node'] = self.model_graph_table['init_node'].map(init_to_ind)
+        self.model_graph_table['term_node'] = self.model_graph_table['term_node'].map(term_to_ind)
+        self.model_graph_correspondences = {}
+        for origin, dests in graph_correspondences.items():
+            dests = copy.deepcopy(dests)
+            self.model_graph_correspondences[init_to_ind[origin]] = {'targets' : list(map(term_to_ind.get , dests['targets'])), 
+                                                                     'corrs' : dests['corrs']}
+            
+        inds_to_nodes = dict(list(zip(np.arange(len(nodes)), nodes)))
+        return inds_to_nodes
+
         
     def find_equilibrium(self, solver_name = 'ustf', solver_kwargs = {}, verbose = False, save_history = False):
         if solver_name == 'fwa':
@@ -44,7 +70,7 @@ class Model:
             prox_h = ProxH(self.graph.freeflow_times, self.graph.capacities, mu = self.mu, rho = self.rho)
 
 
-        phi_big_oracle = oracles.PhiBigOracle(self.graph, self.graph_correspondences)
+        phi_big_oracle = oracles.PhiBigOracle(self.graph, self.model_graph_correspondences)
         primal_dual_calculator = dfc.PrimalDualCalculator(phi_big_oracle,
                                                           self.graph.freeflow_times, self.graph.capacities,
                                                           mu = self.mu, rho = self.rho)

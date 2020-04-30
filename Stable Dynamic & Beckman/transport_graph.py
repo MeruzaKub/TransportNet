@@ -8,11 +8,9 @@ import math
 
     
 class TransportGraph:
-    def __init__(self, graph_data, maxpath_const = 3):
-        graph_table = graph_data['graph_table']
-
-        self.nodes_number = graph_data['nodes number']
-        self.links_number = graph_data['links number']
+    def __init__(self, graph_table, nodes_number, links_number, maxpath_const = 3):
+        self.nodes_number = nodes_number
+        self.links_number = links_number
         self.max_path_length = maxpath_const * int(math.sqrt(self.links_number))
         
         self.graph = gt.Graph(directed=True)
@@ -30,8 +28,8 @@ class TransportGraph:
         inits = np.array(graph_table[['init_node']], dtype = 'int64').flatten()
         terms = np.array(graph_table[['term_node']], dtype = 'int64').flatten()
         for index in range(self.links_number):
-            init_index = graph_table['init_node'][index] - 1
-            term_index = graph_table['term_node'][index] - 1
+            init_index = graph_table['init_node'][index]
+            term_index = graph_table['term_node'][index]
             edge = self.graph.add_edge(self.graph.vertex(init_index),
                                        self.graph.vertex(term_index))
             ep_freeflow_time[edge] = self.freeflow_times[index]

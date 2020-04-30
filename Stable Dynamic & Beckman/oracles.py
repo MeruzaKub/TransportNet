@@ -60,10 +60,10 @@ class AutomaticOracle(BaseOracle):
 
     def __init__(self, source, graph, source_correspondences):
         self.graph = graph
-        self.source_index = source - 1
+        self.source_index = source
 
-        self.corr_targets = np.array(list(source_correspondences.keys()), dtype = 'int64') - 1
-        self.corr_values = np.array(list(source_correspondences.values()))
+        self.corr_targets = np.array(source_correspondences['targets'])
+        self.corr_values = np.array(source_correspondences['corrs'])
         
         self.flows = None
         self.distances = None

@@ -48,9 +48,15 @@ class DataHandler:
         for data in origins_data:
             origin_index = scanf('Origin %d', data)[0]
             origin_correspondences = re.findall(r'[\d]+\s+:[\d.\s]+;', data)
-            graph_correspondences[origin_index] = dict([scanf('%d : %f', line)
-                                  for line in origin_correspondences])
+            targets = []
+            corrs_vals = []
+            for line in origin_correspondences:
+                target, corrs = scanf('%d : %f', line)
+                targets.append(target)
+                corrs_vals.append(corrs)
+            graph_correspondences[origin_index] = {'targets' : targets, 'corrs' : corrs_vals}
         return graph_correspondences, total_od_flow
+    
     #TODO modify 
     def ReadAnswer(self, filename):
         with open(filename) as myfile:
