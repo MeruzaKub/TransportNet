@@ -57,16 +57,16 @@ class DataHandler:
             graph_correspondences[origin_index] = {'targets' : targets, 'corrs' : corrs_vals}
         return graph_correspondences, total_od_flow
     
-    #TODO modify 
+
     def ReadAnswer(self, filename):
         with open(filename) as myfile:
             lines = myfile.readlines()
-        lines = np.array(lines)[range(1, len(lines))]
-        values_dict = {'flow': [], 'time': []}
+        lines = lines[1 :]
+        flows = []
+        times = []
         for line in lines:
-            line = line.strip('[ \n]')
-            nums = line.split(' \t')
-            values_dict['flow'].append(float(nums[2]))
-            values_dict['time'].append(float(nums[3]))
-        return values_dict
+            _, _, flow, time = scanf('%d %d %f %f', line)
+            flows.append(flow)
+            times.append(time)
+        return {'flows' : flows, 'times' : times}
             
