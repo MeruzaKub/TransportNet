@@ -8,9 +8,8 @@ import dual_func_calculator as dfc
 from prox_h import ProxH
 
 import universal_similar_triangles_function as ustf
-
 import universal_gradient_descent as ugd
-
+import subgradient_descent as sd
 import frank_wolfe_algorithm as fwa
 
 
@@ -61,7 +60,7 @@ class Model:
             if not 'L_init' in solver_kwargs:
                 solver_kwargs['L_init'] = 1.0
         elif solver_name == 'sd':
-            solver_func = ugd.universal_gradient_descent_function
+            solver_func = sd.subgradient_descent_function
             starting_msg = 'Subgradient descent...'
         else:
             raise NotImplementedError('Unknown solver!')
