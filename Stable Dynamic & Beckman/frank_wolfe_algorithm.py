@@ -3,7 +3,7 @@ import numpy as np
 from history import History
 
 def frank_wolfe_algorithm(phi_big_oracle, primal_dual_oracle,
-                          t_start, max_iter = 1000,
+                          t_start, max_iter = 10000,
                           eps = 1e-5, eps_abs = None, verbose = False, save_history = False):
     iter_step = 100
     t = np.copy(t_start)

@@ -3,7 +3,7 @@ import numpy as np
 from history import History
 
 def universal_similar_triangles_function(phi_big_oracle, prox_h, primal_dual_oracle,
-                                         t_start, L_init = None, max_iter = 1000,
+                                         t_start, L_init = None, max_iter = 10000,
                                          eps = 1e-5, eps_abs = None, 
                                          verbose = False, save_history = False):    
     iter_step = 100
@@ -68,9 +68,9 @@ def universal_similar_triangles_function(phi_big_oracle, prox_h, primal_dual_ora
         
         if save_history:
             history.update(it_counter, primal_func_value, dual_func_value, duality_gap, inner_iters_num)
-        #if duality_gap < eps_abs:
-        #    success = True
-        #    break
+        if duality_gap < eps_abs:
+            success = True
+            break
         if verbose and (it_counter % iter_step == 0):
             print('\nIterations number: {:d}'.format(it_counter))
             print('Inner iterations number: {:d}'.format(inner_iters_num))

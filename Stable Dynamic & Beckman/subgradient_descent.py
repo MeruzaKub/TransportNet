@@ -2,15 +2,14 @@ from math import sqrt
 import numpy as np
 
 def subgradient_descent_function(phi_big_oracle, prox_h, primal_dual_oracle,
-                                        t_start, max_iter = 1000,
+                                        t_start, max_iter = 10000,
                                         eps = 1e-5, eps_abs = None, 
                                         verbose = False, save_history = False):    
     iter_step = 100
     
     A = 0.0
-    t_prev = np.copy(t_start)
-    t = None
-    
+    t = np.copy(t_start)
+    t_weighted = np.zeros(len(t_start))
     grad_sum = np.zeros(len(t_start))
 
     flows_weighted = - phi_big_oracle.grad(t_start)
@@ -24,8 +23,8 @@ def subgradient_descent_function(phi_big_oracle, prox_h, primal_dual_oracle,
         print('Dual_init = {:g}'.format(dual_func_value))
         print('Duality_gap_init = {:g}'.format(duality_gap_init))
     if save_history:
-        history = History('iter', 'primal_func', 'dual_func', 'dual_gap', 'inner_iters')
-        history.update(0, primal_func_value, dual_func_value, duality_gap_init, 0)
+        history = History('iter', 'primal_func', 'dual_func', 'dual_gap')
+        history.update(0, primal_func_value, dual_func_value, duality_gap_init)
     
     success = False
     for it_counter in range(1, max_iter+1):
@@ -42,10 +41,10 @@ def subgradient_descent_function(phi_big_oracle, prox_h, primal_dual_oracle,
         dual_func_value = primal_dual_oracle.dual_func_value(t_weighted)
         duality_gap = primal_dual_oracle.duality_gap(t, flows_weighted)
         if save_history:
-            history.update(it_counter, primal_func_value, dual_func_value, duality_gap, inner_iters_num)
-        #if duality_gap < eps_abs:
-        #    success = True
-        #    break
+            history.update(it_counter, primal_func_value, dual_func_value, duality_gap)
+        if duality_gap < eps_abs:
+            success = True
+            break
         if verbose and (it_counter % iter_step == 0):
             print('\nIterations number: {:d}'.format(it_counter))
             print('Primal_func_value = {:g}'.format(primal_func_value))
