@@ -3,9 +3,9 @@ import numpy as np
 from history import History
 
 def frank_wolfe_algorithm(phi_big_oracle, primal_dual_oracle,
-                          t_start, max_iter = 10000,
-                          eps = 1e-5, eps_abs = None, verbose = False, save_history = False):
-    iter_step = 100
+                          t_start, max_iter = 1000,
+                          eps = 1e-5, eps_abs = None, verbose_step = 100, verbose = False, save_history = False):
+    iter_step = verbose_step
     t = np.copy(t_start)
     flows = - phi_big_oracle.grad(t)
     
@@ -26,7 +26,7 @@ def frank_wolfe_algorithm(phi_big_oracle, primal_dual_oracle,
     for it_counter in range(1, max_iter+1):
         t = primal_dual_oracle.times_function(flows)
         y_parameter = - phi_big_oracle.grad(t)
-        gamma = 2.0 / (it_counter + 2)
+        gamma = 2.0 / (it_counter + 1)
         flows = (1.0 - gamma) * flows + gamma * y_parameter
         
         primal_func_value = primal_dual_oracle.primal_func_value(flows)
@@ -34,9 +34,9 @@ def frank_wolfe_algorithm(phi_big_oracle, primal_dual_oracle,
         duality_gap = primal_dual_oracle.duality_gap(t, flows)
         if save_history:
             history.update(it_counter, primal_func_value, dual_func_value, duality_gap)
-        #if duality_gap < eps_abs:
-        #    success = True
-        #    break
+        if duality_gap < eps_abs:
+            success = True
+            break
         if verbose and (it_counter % iter_step == 0):
             print('\nIterations number: {:d}'.format(it_counter))
             print('Primal_func_value = {:g}'.format(primal_func_value))
@@ -55,4 +55,5 @@ def frank_wolfe_algorithm(phi_big_oracle, primal_dual_oracle,
         print('Primal_func_value = {:g}'.format(primal_func_value))
         print('Duality_gap / Duality_gap_init = {:g}'.format(duality_gap / duality_gap_init))
         print('Phi_big_oracle elapsed time: {:.0f} sec'.format(phi_big_oracle.time))
+        print('Dijkstra elapsed time: {:.0f} sec'.format(phi_big_oracle.auto_oracles_time))
     return result

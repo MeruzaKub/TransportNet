@@ -25,13 +25,13 @@ class TransportGraph:
         self.freeflow_times = np.array(graph_table[['free_flow_time']], dtype = 'float64').flatten()  
 
         #adding edges to the graph
-        inits = np.array(graph_table[['init_node']], dtype = 'int64').flatten()
-        terms = np.array(graph_table[['term_node']], dtype = 'int64').flatten()
+        self.inits = np.array(graph_table[['init_node']], dtype = 'int64').flatten()
+        self.terms = np.array(graph_table[['term_node']], dtype = 'int64').flatten()
         for index in range(self.links_number):
-            init_index = graph_table['init_node'][index]
-            term_index = graph_table['term_node'][index]
-            edge = self.graph.add_edge(self.graph.vertex(init_index),
-                                       self.graph.vertex(term_index))
+            init = self.inits[index]
+            term = self.terms[index]
+            edge = self.graph.add_edge(self.graph.vertex(init),
+                                       self.graph.vertex(term))
             ep_freeflow_time[edge] = self.freeflow_times[index]
             ep_capacity[edge] = self.capacities[index]
             
@@ -40,28 +40,33 @@ class TransportGraph:
         self.graph.edge_properties["capacities"] = ep_capacity
         
         self.pred_to_edge = [{}] * self.nodes_number
-        for node_index in range(self.nodes_number):
-            self.pred_to_edge[node_index] = {source: edge_index 
-                                             for source, _, edge_index in self.in_edges(node_index)}
+        for node in range(self.nodes_number):
+            self.pred_to_edge[node] = {source: edge 
+                                             for source, _, edge in self.in_edges(node)}
        
     def get_graphtool(self):
         return self.graph
+    
+    def get_edges(self):
+        return self.graph.get_edges()
 
-    def successors(self, node_index):
-        return self.graph.get_out_neighbors(node_index)
+    def successors(self, node):
+        return self.graph.get_out_neighbors(node)
 
-    def predecessors(self, node_index):
-        return self.graph.get_in_neighbors(node_index)
+    def predecessors(self, node):
+        return self.graph.get_in_neighbors(node)
         
     #source, target and index of an edge
-    def in_edges(self, node_index):
-        return self.graph.get_in_edges(node_index, [self.graph.edge_index])
+    def in_edges(self, node):
+        return self.graph.get_in_edges(node, [self.graph.edge_index])
     
     #source, target and index of an edge
-    def out_edges(self, node_index):
-        return self.graph.get_out_edges(node_index, [self.graph.edge_index])
+    def out_edges(self, node):
+        return self.graph.get_out_edges(node, [self.graph.edge_index])
     
     def shortest_distances(self, source, targets, times):
+        if targets is None:
+            targets = np.arange(self.nodes_number)
         ep_time_map = self.graph.new_edge_property("double", vals = times)
         distances, pred_map = gtt.shortest_distance(g = self.graph,
                                                     source = source,

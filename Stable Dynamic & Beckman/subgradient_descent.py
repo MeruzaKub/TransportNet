@@ -1,12 +1,11 @@
-from math import sqrt
 import numpy as np
+from history import History
 
 def subgradient_descent_function(phi_big_oracle, prox_h, primal_dual_oracle,
-                                        t_start, max_iter = 10000,
-                                        eps = 1e-5, eps_abs = None, 
+                                        t_start, max_iter = 1000,
+                                        eps = 1e-5, eps_abs = None, verbose_step = 100,
                                         verbose = False, save_history = False):    
-    iter_step = 100
-    
+    iter_step = verbose_step
     A = 0.0
     t = np.copy(t_start)
     t_weighted = np.zeros(len(t_start))
@@ -59,7 +58,8 @@ def subgradient_descent_function(phi_big_oracle, prox_h, primal_dual_oracle,
     if save_history:
         result['history'] = history.dict
     if verbose:
-        print(result['res_msg'], 'total iters: ' + str(it_counter))
+        print(result['res_msg'])
+        print('Total iters: ' + str(it_counter))
         print('Primal_func_value = {:g}'.format(primal_func_value))
         print('Duality_gap / Duality_gap_init = {:g}'.format(duality_gap / duality_gap_init))
         print('Phi_big_oracle elapsed time: {:.0f} sec'.format(phi_big_oracle.time))

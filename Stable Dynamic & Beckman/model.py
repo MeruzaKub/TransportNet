@@ -45,7 +45,7 @@ class Model:
         return inds_to_nodes
 
         
-    def find_equilibrium(self, solver_name = 'ustf', solver_kwargs = {}, verbose = False, save_history = False):
+    def find_equilibrium(self, solver_name = 'ustf', solver_kwargs = {}):
         if solver_name == 'fwa':
             solver_func = fwa.frank_wolfe_algorithm
             starting_msg = 'Frank-Wolfe algorithm...'
@@ -73,19 +73,18 @@ class Model:
         primal_dual_calculator = dfc.PrimalDualCalculator(phi_big_oracle,
                                                           self.graph.freeflow_times, self.graph.capacities,
                                                           mu = self.mu, rho = self.rho)
-        if verbose:
-            print('Oracles created...')
-            print(starting_msg)
+        print('Oracles created...')
+        print(starting_msg)
         
         if solver_name == 'fwa':
             result = solver_func(phi_big_oracle,
                                  primal_dual_calculator, 
                                  t_start = self.graph.freeflow_times,
-                                 verbose = verbose, save_history = save_history, **solver_kwargs)
+                                 **solver_kwargs)
         else:
             result = solver_func(phi_big_oracle, prox_h,
                                  primal_dual_calculator, 
                                  t_start = self.graph.freeflow_times,
-                                 verbose = verbose, save_history = save_history, **solver_kwargs)
+                                 **solver_kwargs)
 
         return result
