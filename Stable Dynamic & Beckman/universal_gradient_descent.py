@@ -15,9 +15,10 @@ def universal_gradient_descent_function(phi_big_oracle, prox_h, primal_dual_orac
     grad_sum = np.zeros(len(t_start))
 
     flows_weighted = - phi_big_oracle.grad(t_start)
-    duality_gap_init = primal_dual_oracle.duality_gap(t_start, flows_weighted)
+    t_weighted = np.copy(t_start)
+    duality_gap_init = primal_dual_oracle.duality_gap(t_weighted, flows_weighted)
     primal_func_value = primal_dual_oracle.primal_func_value(flows_weighted)
-    dual_func_value = primal_dual_oracle.dual_func_value(t_start)
+    dual_func_value = primal_dual_oracle.dual_func_value(t_weighted)
     if eps_abs is None:
         eps_abs = eps * duality_gap_init
     if verbose:
@@ -50,13 +51,14 @@ def universal_gradient_descent_function(phi_big_oracle, prox_h, primal_dual_orac
         L_value /= 2
         
         t_prev = t
+        t_weighted = (t_weighted * A + t * alpha) / (A + alpha)
         A += alpha
         grad_sum += alpha * phi_grad_t
         flows_weighted = - grad_sum / A
         
         primal_func_value = primal_dual_oracle.primal_func_value(flows_weighted)
-        dual_func_value = primal_dual_oracle.dual_func_value(t)
-        duality_gap = primal_dual_oracle.duality_gap(t, flows_weighted)
+        dual_func_value = primal_dual_oracle.dual_func_value(t_weighted)
+        duality_gap = primal_dual_oracle.duality_gap(t_weighted, flows_weighted)
         if save_history:
             history.update(it_counter, primal_func_value, dual_func_value, duality_gap, inner_iters_num)
         if duality_gap < eps_abs:
@@ -70,7 +72,7 @@ def universal_gradient_descent_function(phi_big_oracle, prox_h, primal_dual_orac
             print('Duality_gap = {:g}'.format(duality_gap))
             print('Duality_gap / Duality_gap_init = {:g}'.format(duality_gap / duality_gap_init), flush=True)
             
-    result = {'times': t,
+    result = {'times': t_weighted,
               'flows': flows_weighted,
               'iter_num': it_counter,
               'res_msg' : 'success' if success else 'iterations number exceeded'}

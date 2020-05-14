@@ -8,10 +8,11 @@ def frank_wolfe_algorithm(phi_big_oracle, primal_dual_oracle,
     iter_step = verbose_step
     t = np.copy(t_start)
     flows = - phi_big_oracle.grad(t)
+    t_wheighted = primal_dual_oracle.times_function(flows)
     
-    duality_gap_init = primal_dual_oracle.duality_gap(t, flows)
+    duality_gap_init = primal_dual_oracle.duality_gap(t_wheighted, flows)
     primal_func_value = primal_dual_oracle.primal_func_value(flows)
-    dual_func_value = primal_dual_oracle.dual_func_value(t)
+    dual_func_value = primal_dual_oracle.dual_func_value(t_wheighted)
     if eps_abs is None:
         eps_abs = eps * duality_gap_init
     if verbose:
@@ -28,10 +29,11 @@ def frank_wolfe_algorithm(phi_big_oracle, primal_dual_oracle,
         y_parameter = - phi_big_oracle.grad(t)
         gamma = 2.0 / (it_counter + 1)
         flows = (1.0 - gamma) * flows + gamma * y_parameter
+        t_wheighted = (1.0 - gamma) * t_wheighted + gamma * t
         
         primal_func_value = primal_dual_oracle.primal_func_value(flows)
-        dual_func_value = primal_dual_oracle.dual_func_value(t)
-        duality_gap = primal_dual_oracle.duality_gap(t, flows)
+        dual_func_value = primal_dual_oracle.dual_func_value(t_wheighted)
+        duality_gap = primal_dual_oracle.duality_gap(t_wheighted, flows)
         if save_history:
             history.update(it_counter, primal_func_value, dual_func_value, duality_gap)
         if duality_gap < eps_abs:
@@ -44,7 +46,7 @@ def frank_wolfe_algorithm(phi_big_oracle, primal_dual_oracle,
             print('Duality_gap = {:g}'.format(duality_gap))
             print('Duality_gap / Duality_gap_init = {:g}'.format(duality_gap / duality_gap_init), flush=True)
      
-    result = {'times': t,
+    result = {'times': t_wheighted,
               'flows': flows,
               'iter_num': it_counter,
               'res_msg' : 'success' if success else 'iterations number exceeded'}
