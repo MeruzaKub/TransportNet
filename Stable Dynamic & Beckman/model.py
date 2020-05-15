@@ -1,4 +1,6 @@
 # model parameters:
+import copy
+import numpy as np
 import transport_graph as tg
 
 import oracles
@@ -6,21 +8,44 @@ import dual_func_calculator as dfc
 from prox_h import ProxH
 
 import universal_similar_triangles_function as ustf
-
 import universal_gradient_descent as ugd
-
+import subgradient_descent as sd
 import frank_wolfe_algorithm as fwa
 
 
 class Model:
     def __init__(self, graph_data, graph_correspondences, total_od_flow, mu = 0.25, rho = 0.15):
-        self.graph = tg.TransportGraph(graph_data)
-        self.graph_correspondences = graph_correspondences
         self.total_od_flow = total_od_flow
         self.mu = mu
         self.rho = rho
+        self.inds_to_nodes = self._index_nodes_(graph_data['graph_table'], graph_correspondences) 
+        self.graph = tg.TransportGraph(self.model_graph_table, len(self.inds_to_nodes), graph_data['links number'])
         
-    def find_equilibrium(self, solver_name = 'ustf', solver_kwargs = {}, verbose = False):
+    def _index_nodes_(self, graph_table, graph_correspondences):
+        self.model_graph_table = graph_table.copy()
+        inits = np.unique(self.model_graph_table['init_node'][self.model_graph_table['init_node_thru'] == False])
+        terms = np.unique(self.model_graph_table['term_node'][self.model_graph_table['term_node_thru'] == False])
+        through_nodes = np.unique([self.model_graph_table['init_node'][self.model_graph_table['init_node_thru'] == True], 
+                                   self.model_graph_table['term_node'][self.model_graph_table['term_node_thru'] == True]])
+        
+        nodes = np.concatenate((inits, through_nodes, terms))
+        nodes_inds = list(zip(nodes, np.arange(len(nodes))))
+        init_to_ind = dict(nodes_inds[ : len(inits) + len(through_nodes)])
+        term_to_ind = dict(nodes_inds[len(inits) : ])
+        
+        self.model_graph_table['init_node'] = self.model_graph_table['init_node'].map(init_to_ind)
+        self.model_graph_table['term_node'] = self.model_graph_table['term_node'].map(term_to_ind)
+        self.model_graph_correspondences = {}
+        for origin, dests in graph_correspondences.items():
+            dests = copy.deepcopy(dests)
+            self.model_graph_correspondences[init_to_ind[origin]] = {'targets' : list(map(term_to_ind.get , dests['targets'])), 
+                                                                     'corrs' : dests['corrs']}
+            
+        inds_to_nodes = dict(list(zip(np.arange(len(nodes)), nodes)))
+        return inds_to_nodes
+
+        
+    def find_equilibrium(self, solver_name = 'ustf', solver_kwargs = {}):
         if solver_name == 'fwa':
             solver_func = fwa.frank_wolfe_algorithm
             starting_msg = 'Frank-Wolfe algorithm...'
@@ -35,7 +60,7 @@ class Model:
             if not 'L_init' in solver_kwargs:
                 solver_kwargs['L_init'] = 1.0
         elif solver_name == 'sd':
-            solver_func = ugd.universal_gradient_descent_function
+            solver_func = sd.subgradient_descent_function
             starting_msg = 'Subgradient descent...'
         else:
             raise NotImplementedError('Unknown solver!')
@@ -44,23 +69,22 @@ class Model:
             prox_h = ProxH(self.graph.freeflow_times, self.graph.capacities, mu = self.mu, rho = self.rho)
 
 
-        phi_big_oracle = oracles.PhiBigOracle(self.graph, self.graph_correspondences)
+        phi_big_oracle = oracles.PhiBigOracle(self.graph, self.model_graph_correspondences)
         primal_dual_calculator = dfc.PrimalDualCalculator(phi_big_oracle,
                                                           self.graph.freeflow_times, self.graph.capacities,
                                                           mu = self.mu, rho = self.rho)
-        if verbose:
-            print('Oracles created...')
-            print(starting_msg)
+        print('Oracles created...')
+        print(starting_msg)
         
         if solver_name == 'fwa':
             result = solver_func(phi_big_oracle,
                                  primal_dual_calculator, 
                                  t_start = self.graph.freeflow_times,
-                                 verbose = verbose, **solver_kwargs)
+                                 **solver_kwargs)
         else:
             result = solver_func(phi_big_oracle, prox_h,
                                  primal_dual_calculator, 
                                  t_start = self.graph.freeflow_times,
-                                 verbose = verbose, **solver_kwargs)
+                                 **solver_kwargs)
 
         return result
