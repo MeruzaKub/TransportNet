@@ -11,8 +11,8 @@ The following methods are implemented:
 More information about models can be found in [[Nesterov-de Palma](https://link.springer.com/article/10.1023/A:1025350419398)] and [[Beckmann](https://cowles.yale.edu/sites/default/files/files/pub/misc/specpub-beckmann-mcguire-winsten.pdf)].
 [Anaheim_Experiments.ipynb](https://github.com/MeruzaKub/TransportNet/blob/master/Stable%20Dynamic%20%26%20Beckman/Anaheim_Experiments.ipynb) contains code of experiments on comparison of the above methods and Frank-Wolfe algorithm (only for Beckmann model).
 
-%Convergence process on 10 000 iterations for Stable Dynamic model:
-%![](methods_stable_dynamic.png)
+<!--- Convergence process on 10 000 iterations for Stable Dynamic model:--->
+<!---![](methods_stable_dynamic.png)--->
 
-%Convergence process on 8000 iterations for Beckmann model (+ Frank-Wolfe algorithm):
-%![](methods_beckmann.png)
+<!---Convergence process on 8000 iterations for Beckmann model (+ Frank-Wolfe algorithm):--->
+<!---![](methods_beckmann.png)--->
