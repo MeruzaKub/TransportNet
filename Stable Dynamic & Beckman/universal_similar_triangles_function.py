@@ -17,18 +17,14 @@ def universal_similar_triangles_function(phi_big_oracle, prox_h, primal_dual_ora
     grad_sum_prev = np.zeros(len(t_start))
 
     flows_weighted = - phi_big_oracle.grad(y_start)
-    duality_gap_init = primal_dual_oracle.duality_gap(y_start, flows_weighted)
-    primal_func_value = primal_dual_oracle.primal_func_value(flows_weighted)
-    dual_func_value = primal_dual_oracle.dual_func_value(y_start)
-    if eps_abs is None:
-        eps_abs = eps * duality_gap_init
-    if verbose:
-        print('Primal_init = {:g}'.format(primal_func_value))
-        print('Dual_init = {:g}'.format(dual_func_value))
-        print('Duality_gap_init = {:g}'.format(duality_gap_init))
+    primal, dual, duality_gap_init, state_msg = primal_dual_oracle(flows_weighted, y_start)
     if save_history:
         history = History('iter', 'primal_func', 'dual_func', 'dual_gap', 'inner_iters')
-        history.update(0, primal_func_value, dual_func_value, duality_gap_init, 0)
+        history.update(0, primal, dual, duality_gap_init, 0)
+    if verbose:
+        print(state_msg)
+    if eps_abs is None:
+        eps_abs = eps * duality_gap_init
     
     success = False
     inner_iters_num = 0
@@ -62,34 +58,25 @@ def universal_similar_triangles_function(phi_big_oracle, prox_h, primal_dual_ora
         grad_sum_prev = grad_sum
         flows_weighted = - grad_sum / A
         
-        primal_func_value = primal_dual_oracle.primal_func_value(flows_weighted)
-        dual_func_value = primal_dual_oracle.dual_func_value(t)
-        duality_gap = primal_dual_oracle.duality_gap(t, flows_weighted)
-        
+        primal, dual, duality_gap, state_msg  = primal_dual_oracle(flows_weighted, t)
         if save_history:
-            history.update(it_counter, primal_func_value, dual_func_value, duality_gap, inner_iters_num)
-        if duality_gap < eps_abs:
-            success = True
-            break
+            history.update(it_counter, primal, dual, duality_gap, inner_iters_num)
         if verbose and (it_counter % iter_step == 0):
             print('\nIterations number: {:d}'.format(it_counter))
             print('Inner iterations number: {:d}'.format(inner_iters_num))
-            print('Primal_func_value = {:g}'.format(primal_func_value))
-            print('Dual_func_value = {:g}'.format(dual_func_value))
-            print('Duality_gap = {:g}'.format(duality_gap))
-            print('Duality_gap / Duality_gap_init = {:g}'.format(duality_gap / duality_gap_init), flush=True)
+            print(state_msg, flush = True)
+        if duality_gap < eps_abs:
+            success = True
+            break
             
-    result = {'times': t,
-              'flows': flows_weighted,
+    result = {'times': t, 'flows': flows_weighted,
               'iter_num': it_counter,
               'res_msg' : 'success' if success else 'iterations number exceeded'}
     if save_history:
         result['history'] = history.dict
     if verbose:
-        print(result['res_msg'])
-        print('Total iters: ' + str(it_counter))
-        print('Primal_func_value = {:g}'.format(primal_func_value))
-        print('Duality_gap / Duality_gap_init = {:g}'.format(duality_gap / duality_gap_init))
+        print('Result: ' + result['res_msg'], 'Total iters: ' + str(it_counter))
+        print(state_msg)
         print('Phi_big_oracle elapsed time: {:.0f} sec'.format(phi_big_oracle.time))
         print('Dijkstra elapsed time: {:.0f} sec'.format(phi_big_oracle.auto_oracles_time))
     return result

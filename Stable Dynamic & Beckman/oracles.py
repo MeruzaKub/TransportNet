@@ -73,6 +73,38 @@ class BaseOracle(object):
         """
         raise NotImplementedError('Grad oracle is not implemented.')
         
+    def prox(self, p, A, x_start = None):
+        """
+            Calculates prox of the function f(x) at point p:
+            prox_f (p) = argmin_{x in Q} 0.5 ||x - p||^2 + A * f(x)
+            p - point
+            Q - feasible set
+            A - constant
+            x_start - start point for iterative minimization method 
+        """
+        raise NotImplementedError('Prox of the function is not implemented.')
+        
+    def __add__(self, other):
+        return AdditiveOracle(self, other)
+        
+
+        
+class AdditiveOracle(BaseOracle):
+    def __init__(self, *oracles):
+        self.oracles = oracles
+                 
+    def func(self, x):
+        func = 0
+        for oracle in self.oracles:
+            func += oracle.func(x)
+        return func
+        
+    def grad(self, x):
+        grad = np.zeros(len(x))
+        for oracle in self.oracles:
+            grad += oracle.grad(x)
+        return grad
+        
 
 class AutomaticOracle(BaseOracle):
     """
@@ -162,5 +194,103 @@ class PhiBigOracle(BaseOracle):
             self.auto_oracles_time += auto_oracle.time
         self.time += time.time() - tic
         return self.grad_current
+
     
-         
+#Newton's method for HOracle
+@njit
+def newton(x_0_arr, a_arr, mu,
+           tol = 1e-7, max_iter = 1000):
+    """
+    Newton method for equation x - x_0 + a x^mu = 0, x >= 0
+    """
+    res = np.empty(len(x_0_arr), dtype = np.float_)
+    for i in range(len(x_0_arr)):
+        x_0 = x_0_arr[i]
+        a = a_arr[i]
+        if x_0 <= 0:
+            res[i] = 0
+            continue
+        x = min(x_0, (x_0 / a) ** (1 / mu))
+        for it in range(max_iter):
+            x_next = x - f(x, x_0, a, mu) / der_f(x, x_0, a, mu)
+            if x_next <= 0:
+                x_next = 0.1 * x
+            x = x_next
+            if np.abs(f(x, x_0, a, mu)) < tol:
+                break
+        res[i] = x
+    return res
+
+@njit
+def f(x, x_0, a, mu):
+    return x - x_0 + a * x ** mu
+
+@njit
+def der_f(x, x_0, a, mu):
+    return 1.0 + a * mu * x ** (mu - 1)
+
+class HOracle(BaseOracle):
+    def __init__(self, freeflowtimes, capacities, rho = 10.0, mu = 0.25):  
+        self.links_number = len(freeflowtimes)
+        self.rho_value = rho
+        self.mu = mu
+        self.freeflowtimes = np.copy(freeflowtimes)
+        self.capacities = np.copy(capacities)
+    
+    def func(self, t_parameter): 
+        """
+        Computes the value of the function h(times) = \sum sigma^* (times)
+        """
+        if self.mu == 0:
+            h_func = np.dot(self.capacities, np.maximum(t_parameter - self.freeflowtimes,0))
+        else:
+            h_func = np.sum(self.capacities * (t_parameter - self.freeflowtimes) * 
+                                      (np.maximum(t_parameter - self.freeflowtimes, 0.0) / 
+                                       (self.rho * self.freeflowtimes)) ** self.mu) / (1.0 + self.mu)
+        return h_func
+    
+    def conjugate_func(self, flows):
+        """
+        Computes the conjugate of the function h(t):
+        h*(flows) = \sum sigma(flows), since h(t) is a separable function
+        """
+        if self.mu == 0:
+            return np.dot(self.freeflowtimes, flows) 
+        else:
+            return np.dot(self.freeflowtimes * flows, 
+                          self.rho * self.mu / (1.0 + self.mu) * 
+                          (flows / self.capacities) ** (1.0 / self.mu) + 1.0)
+    
+    def grad(self, t_parameter):
+        if self.mu == 0:
+            h_grad = self.capacities
+        else:
+            h_grad = self.capacities * (np.maximum(t_parameter - self.freeflowtimes, 0.0) / 
+                                       (self.rho * self.freeflowtimes)) ** self.mu
+        return h_grad
+    
+    def prox(self, point, A, u_start = None):
+        """
+        Computes argmin_{t >= freeflowtimes} 0.5 ||t - p||^2 + A * h(t)
+        p - point
+        u_start - start point for iterative minimization method (here, Newton's method is applied)
+        """
+        #print('argmin called...' + 'u_start = ' + str(u_start))
+        if self.mu == 0:
+            return np.maximum(point - A * self.capacities, self.freeflowtimes)
+        elif self.mu == 1:
+            pass
+        elif self.mu == 0.5:
+            pass
+        elif self.mu == 0.25:
+            pass
+        
+        self.A = A
+        if u_start is None:
+            u_start = 2.0 * self.freeflowtimes
+        x = newton(x_0_arr = (point - self.freeflowtimes) / (self.rho_value * self.freeflowtimes),
+                   a_arr = A * self.capacities / (self.rho_value * self.freeflowtimes),
+                   mu = self.mu)
+        argmin = (1 + self.rho_value * x) * self.freeflowtimes
+        #print('my result argmin = ' + str(argmin))
+        return argmin
