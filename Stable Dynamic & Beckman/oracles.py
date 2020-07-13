@@ -86,7 +86,6 @@ class BaseOracle(object):
         
     def __add__(self, other):
         return AdditiveOracle(self, other)
-        
 
         
 class AdditiveOracle(BaseOracle):
@@ -104,7 +103,11 @@ class AdditiveOracle(BaseOracle):
         for oracle in self.oracles:
             grad += oracle.grad(x)
         return grad
-        
+    
+    @property
+    def time(self): #getter
+        return np.sum([oracle.time for oracle in self.oracles])
+
 
 class AutomaticOracle(BaseOracle):
     """
@@ -232,10 +235,12 @@ def der_f(x, x_0, a, mu):
 class HOracle(BaseOracle):
     def __init__(self, freeflowtimes, capacities, rho = 10.0, mu = 0.25):  
         self.links_number = len(freeflowtimes)
-        self.rho_value = rho
+        self.rho = rho
         self.mu = mu
         self.freeflowtimes = np.copy(freeflowtimes)
         self.capacities = np.copy(capacities)
+        
+        self.time = 0
     
     def func(self, t_parameter): 
         """
@@ -269,28 +274,28 @@ class HOracle(BaseOracle):
                                        (self.rho * self.freeflowtimes)) ** self.mu
         return h_grad
     
-    def prox(self, point, A, u_start = None):
+    def prox(self, grad, point, A):
         """
-        Computes argmin_{t >= freeflowtimes} 0.5 ||t - p||^2 + A * h(t)
-        p - point
-        u_start - start point for iterative minimization method (here, Newton's method is applied)
+        Computes argmin_{t: t \in Q} <g, t> + A / 2 * ||t - p||^2 + h(t)
+        where Q - the feasible set {t: t >= free_flow_times},
+              A - constant, g - (sub)gradient vector, p - point at which prox is calculated
         """
-        #print('argmin called...' + 'u_start = ' + str(u_start))
+        #rewrite to A/2 ||t - p_new||^2 + h(t)
+        point_new = point - grad / A
         if self.mu == 0:
-            return np.maximum(point - A * self.capacities, self.freeflowtimes)
+            return np.maximum(point_new - self.capacities / A, self.freeflowtimes)
         elif self.mu == 1:
             pass
         elif self.mu == 0.5:
             pass
         elif self.mu == 0.25:
             pass
-        
-        self.A = A
-        if u_start is None:
-            u_start = 2.0 * self.freeflowtimes
-        x = newton(x_0_arr = (point - self.freeflowtimes) / (self.rho_value * self.freeflowtimes),
-                   a_arr = A * self.capacities / (self.rho_value * self.freeflowtimes),
+        #rewrite to x - x_0 + a x^mu = 0, x >= 0
+        #where x = (t - bar{t})/(bar{t} * rho), x_0 = (p_new - bar{t})/(bar{t} * rho),
+        #      a = bar{f} / (A * bar{t} * rho)
+        x = newton(x_0_arr = (point_new - self.freeflowtimes) / (self.rho * self.freeflowtimes),
+                   a_arr = self.capacities / (A * self.rho * self.freeflowtimes),
                    mu = self.mu)
-        argmin = (1 + self.rho_value * x) * self.freeflowtimes
+        argmin = (1 + self.rho * x) * self.freeflowtimes
         #print('my result argmin = ' + str(argmin))
         return argmin

@@ -2,18 +2,18 @@ from math import sqrt
 import numpy as np
 from history import History
 
-def weighted_dual_averages_method(phi_big_oracle, prox_h, primal_dual_oracle,
-                                         t_start, composite = False, max_iter = 1000,
-                                         eps = 1e-5, eps_abs = None, verbose_step = 100,
-                                         verbose = False, save_history = False):
+def weighted_dual_averages_method(oracle, prox, primal_dual_oracle,
+                                  t_start, max_iter = 1000,
+                                  eps = 1e-5, eps_abs = None, verbose_step = 100,
+                                  verbose = False, save_history = False):
     iter_step = verbose_step
     A = 0.0
-    t_prev = np.copy(t_start)
-    rho_wda = np.sqrt(2) * np.linalg.norm(t_prev) 
-    t = None
+    t = np.copy(t_start)
     grad_sum = np.zeros(len(t_start))
+    beta_seq = 1.0
+    rho_wda = np.sqrt(2) * np.linalg.norm(t_start) 
 
-    flows_weighted = - phi_big_oracle.grad(t_start)
+    flows_weighted = - oracle.grad(t_start)
     t_weighted = np.copy(t_start)
     primal, dual, duality_gap_init, state_msg = primal_dual_oracle(flows_weighted, t_weighted)
     if save_history:
@@ -28,18 +28,16 @@ def weighted_dual_averages_method(phi_big_oracle, prox_h, primal_dual_oracle,
     inner_iters_num = 0
     
     for it_counter in range(1, max_iter+1):
-        alpha = 1 / np.linalg.norm(phi_grad_t)
-        phi_grad_t = phi_big_oracle.grad(t_prev)
-        beta = 
-        if composite:
-            t = prox_h(t_start - norm_grad_sum / beta, A / beta)
-        else:
-            t = np.maximum(t_start - A * , prox_h.freeflowtimes)
-
-        t_prev = t
-        t_weighted = (t_weighted * A + t * alpha) / (A + alpha)
+        grad_t = oracle.grad(t)
+        alpha = 1 / np.linalg.norm(grad_t)
         A += alpha
-        grad_sum += alpha * phi_grad_t
+        grad_sum += alpha * grad_t
+        
+        beta_seq = 1 if it_counter == 1 else beta_seq + 1.0 / beta_seq
+        beta = beta_seq / rho_wda
+        t = prox(grad_sum / A, t_start, beta / A)
+
+        t_weighted = (t_weighted * (A - alpha) + t * alpha) / A
         flows_weighted = - grad_sum / A
         
         primal, dual, duality_gap, state_msg  = primal_dual_oracle(flows_weighted, t_weighted)
@@ -61,6 +59,6 @@ def weighted_dual_averages_method(phi_big_oracle, prox_h, primal_dual_oracle,
     if verbose:
         print('Result: ' + result['res_msg'], 'Total iters: ' + str(it_counter))
         print(state_msg)
-        print('Phi_big_oracle elapsed time: {:.0f} sec'.format(phi_big_oracle.time))
+        print('Oracle elapsed time: {:.0f} sec'.format(oracle.time))
     return result
 
