@@ -38,6 +38,9 @@ class PrimalDualCalculator:
     def duality_gap(self, times, flows):
         return self.dual_func_value(times) + self.primal_func_value(flows)
     
+    def get_flows(self, times):
+        return - self.phi_big_oracle.grad(times)
+    
     #for Frank-Wolfe algorithm
     def times_function(self, flows):
         return self.freeflowtimes * (1.0 + self.rho * np.power(flows / self.capacities, 1.0 / self.mu))

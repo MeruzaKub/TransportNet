@@ -22,7 +22,7 @@ def frank_wolfe_method(oracle, primal_dual_oracle,
     success = False
     for it_counter in range(1, max_iter+1):
         t = primal_dual_oracle.times_function(flows)
-        y_parameter = - oracle.grad(t)
+        y_parameter = primal_dual_oracle.get_flows(t) 
         gamma = 2.0 / (it_counter + 1)
         flows = (1.0 - gamma) * flows + gamma * y_parameter
         t_weighted = (1.0 - gamma) * t_weighted + gamma * t

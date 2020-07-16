@@ -9,7 +9,6 @@ def subgradient_descent_method(oracle, prox, primal_dual_oracle,
     A = 0.0
     t = np.copy(t_start)
     t_weighted = np.zeros(len(t_start))
-    grad_sum = np.zeros(len(t_start))
 
     flows_weighted = - oracle.grad(t_start)
     primal, dual, duality_gap_init, state_msg = primal_dual_oracle(flows_weighted, t_start)
@@ -24,13 +23,13 @@ def subgradient_descent_method(oracle, prox, primal_dual_oracle,
     success = False
     for it_counter in range(1, max_iter+1):
         grad_t = oracle.grad(t)
+        flows = primal_dual_oracle.get_flows(t)
         alpha = eps_abs / np.linalg.norm(grad_t)**2
         t = prox(grad_t, t, 1.0 / alpha)
-
-        t_weighted = (A * t_weighted + alpha * t) / (A + alpha)
+        
         A += alpha
-        grad_sum += alpha * grad_t
-        flows_weighted = - grad_sum / A
+        t_weighted = ((A - alpha) * t_weighted + alpha * t) / A
+        flows_weighted = ((A - alpha) * flows_weighted + alpha * flows) / A
         
         primal, dual, duality_gap, state_msg  = primal_dual_oracle(flows_weighted, t_weighted)
         if save_history:

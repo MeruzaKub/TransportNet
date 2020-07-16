@@ -48,15 +48,15 @@ class Model:
     def find_equilibrium(self, solver_name = 'ustm', composite = True, solver_kwargs = {}):
         if solver_name == 'fwm':
             solver_func = fwm.frank_wolfe_method
-            starting_msg = 'Frank-Wolfe algorithm...'
+            starting_msg = 'Frank-Wolfe method...'
         elif solver_name == 'ustm':
             solver_func = ustm.universal_similar_triangles_method
-            starting_msg = 'Universal similar triangles function...'
+            starting_msg = 'Universal similar triangles method...'
             if not 'L_init' in solver_kwargs:
                 solver_kwargs['L_init'] = self.graph.max_path_length**0.5 * self.total_od_flow
         elif solver_name == 'ugd':
             solver_func = ugd.universal_gradient_descent_method
-            starting_msg = 'Universal gradient descent...'
+            starting_msg = 'Universal gradient descent method...'
             if not 'L_init' in solver_kwargs:
                 solver_kwargs['L_init'] = 1.0
         elif solver_name == 'wda':
@@ -64,7 +64,7 @@ class Model:
             starting_msg = 'Weighted dual averages method...'
         elif solver_name == 'sd':
             solver_func = sd.subgradient_descent_method
-            starting_msg = 'Subgradient descent...'
+            starting_msg = 'Subgradient descent method...'
         else:
             raise NotImplementedError('Unknown solver!')
         
@@ -75,9 +75,11 @@ class Model:
                                                           self.graph.freeflow_times, self.graph.capacities,
                                                           rho = self.rho, mu = self.mu)
         if composite == True or solver_name == 'fwm':
+            print('Composite optimization...')
             oracle = phi_big_oracle  
             prox = h_oracle.prox
         else:
+            print('Non-composite optimization...')
             oracle = phi_big_oracle + h_oracle
             def prox_func(grad, point, A):
                 """

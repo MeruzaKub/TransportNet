@@ -16,7 +16,7 @@ def universal_similar_triangles_method(oracle, prox, primal_dual_oracle,
     grad_sum = None
     grad_sum_prev = np.zeros(len(t_start))
 
-    flows_weighted = - oracle.grad(y_start)
+    flows_weighted = primal_dual_oracle.get_flows(y_start) 
     primal, dual, duality_gap_init, state_msg = primal_dual_oracle(flows_weighted, y_start)
     if save_history:
         history = History('iter', 'primal_func', 'dual_func', 'dual_gap', 'inner_iters')
@@ -38,6 +38,7 @@ def universal_similar_triangles_method(oracle, prox, primal_dual_oracle,
 
             y = (alpha * u_prev + A_prev * t_prev) / A
             grad_y = oracle.grad(y)
+            flows = primal_dual_oracle.get_flows(y) #grad() is called here
             grad_sum = grad_sum_prev + alpha * grad_y
             u = prox(grad_sum / A, y_start, 1.0 / A)
             t = (alpha * u + A_prev * t_prev) / A
@@ -56,9 +57,9 @@ def universal_similar_triangles_method(oracle, prox, primal_dual_oracle,
         t_prev = t
         u_prev = u
         grad_sum_prev = grad_sum
-        flows_weighted = - grad_sum / A
+        flows_weighted = (flows_weighted * (A - alpha) + flows * alpha ) / A
         
-        primal, dual, duality_gap, state_msg  = primal_dual_oracle(flows_weighted, t)
+        primal, dual, duality_gap, state_msg = primal_dual_oracle(flows_weighted, t)
         if save_history:
             history.update(it_counter, primal, dual, duality_gap, inner_iters_num)
         if verbose and (it_counter % iter_step == 0):

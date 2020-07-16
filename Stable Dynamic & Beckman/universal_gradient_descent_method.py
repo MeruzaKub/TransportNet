@@ -10,9 +10,8 @@ def universal_gradient_descent_method(oracle, prox, primal_dual_oracle,
     A = 0.0
     t_prev = np.copy(t_start)
     t = None
-    grad_sum = np.zeros(len(t_start))
 
-    flows_weighted = - oracle.grad(t_start)
+    flows_weighted = primal_dual_oracle.get_flows(t_start) 
     t_weighted = np.copy(t_start)
     primal, dual, duality_gap_init, state_msg = primal_dual_oracle(flows_weighted, t_weighted)
     if save_history:
@@ -32,6 +31,7 @@ def universal_gradient_descent_method(oracle, prox, primal_dual_oracle,
             
             alpha = 1 / L_value
             grad_t = oracle.grad(t_prev)
+            flows = primal_dual_oracle.get_flows(t_prev) #grad() is called here
             t = prox(grad_t, t_prev, 1.0 / alpha)
 
             left_value = (oracle.func(t_prev) + np.dot(grad_t, t - t_prev) + 
@@ -46,11 +46,10 @@ def universal_gradient_descent_method(oracle, prox, primal_dual_oracle,
         
         t_prev = t
         A += alpha
-        grad_sum += alpha * grad_t
         t_weighted = (t_weighted * (A - alpha) + t * alpha) / A
-        flows_weighted = - grad_sum / A
+        flows_weighted = (flows_weighted * (A - alpha) + flows * alpha ) / A
         
-        primal, dual, duality_gap, state_msg  = primal_dual_oracle(flows_weighted, t_weighted)
+        primal, dual, duality_gap, state_msg = primal_dual_oracle(flows_weighted, t_weighted)
         if save_history:
             history.update(it_counter, primal, dual, duality_gap, inner_iters_num)
         if verbose and (it_counter % iter_step == 0):

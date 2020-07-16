@@ -13,7 +13,7 @@ def weighted_dual_averages_method(oracle, prox, primal_dual_oracle,
     beta_seq = 1.0
     rho_wda = np.sqrt(2) * np.linalg.norm(t_start) 
 
-    flows_weighted = - oracle.grad(t_start)
+    flows_weighted = primal_dual_oracle.get_flows(t_start)
     t_weighted = np.copy(t_start)
     primal, dual, duality_gap_init, state_msg = primal_dual_oracle(flows_weighted, t_weighted)
     if save_history:
@@ -29,6 +29,7 @@ def weighted_dual_averages_method(oracle, prox, primal_dual_oracle,
     
     for it_counter in range(1, max_iter+1):
         grad_t = oracle.grad(t)
+        flows = primal_dual_oracle.get_flows(t) #grad() is called here
         alpha = 1 / np.linalg.norm(grad_t)
         A += alpha
         grad_sum += alpha * grad_t
@@ -38,7 +39,7 @@ def weighted_dual_averages_method(oracle, prox, primal_dual_oracle,
         t = prox(grad_sum / A, t_start, beta / A)
 
         t_weighted = (t_weighted * (A - alpha) + t * alpha) / A
-        flows_weighted = - grad_sum / A
+        flows_weighted = (flows_weighted * (A - alpha) + flows * alpha ) / A
         
         primal, dual, duality_gap, state_msg  = primal_dual_oracle(flows_weighted, t_weighted)
         if save_history:
