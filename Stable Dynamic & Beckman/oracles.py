@@ -159,9 +159,7 @@ class PhiBigOracle(BaseOracle):
             self.processes_number = processes_number
         else:
             self.processes_number = len(correspondences)
-        self.t_current = None
-        self.func_current = None
-        self.grad_current = None
+        self.t_current = self.func_current = self.grad_current = None
         
         self.auto_oracles = []
         for source, source_correspondences in self.correspondences.items():
@@ -169,7 +167,6 @@ class PhiBigOracle(BaseOracle):
         self.time = 0.0
     
     def _reset(self, t_parameter):
-        #print('Start reset')
         tic = time.time()
         self.t_current = t_parameter
         self.func_current = 0.0
@@ -178,7 +175,6 @@ class PhiBigOracle(BaseOracle):
             self.func_current += auto_oracle.func(self.t_current)
             self.auto_oracles_time += auto_oracle.time
         self.time += time.time() - tic
-        #print('Stop reset')
     
     def func(self, t_parameter):
         if self.t_current is None or np.any(self.t_current != t_parameter):
@@ -244,7 +240,7 @@ class HOracle(BaseOracle):
     
     def func(self, t_parameter): 
         """
-        Computes the value of the function h(times) = \sum sigma^* (times)
+        Computes value of the function h(times) = \sum_i sigma^*(times[i])
         """
         if self.mu == 0:
             h_func = np.dot(self.capacities, np.maximum(t_parameter - self.freeflowtimes,0))
@@ -257,7 +253,7 @@ class HOracle(BaseOracle):
     def conjugate_func(self, flows):
         """
         Computes the conjugate of the function h(t):
-        h*(flows) = \sum sigma(flows), since h(t) is a separable function
+        h^*(flows) = \sum_i sigma(flows[i]), since h(t) is a separable function
         """
         if self.mu == 0:
             return np.dot(self.freeflowtimes, flows) 
@@ -280,7 +276,7 @@ class HOracle(BaseOracle):
         where Q - the feasible set {t: t >= free_flow_times},
               A - constant, g - (sub)gradient vector, p - point at which prox is calculated
         """
-        #rewrite to A/2 ||t - p_new||^2 + h(t)
+        #rewrite as A/2 ||t - p_new||^2 + h(t)
         point_new = point - grad / A
         if self.mu == 0:
             return np.maximum(point_new - self.capacities / A, self.freeflowtimes)
@@ -290,12 +286,11 @@ class HOracle(BaseOracle):
             pass
         elif self.mu == 0.25:
             pass
-        #rewrite to x - x_0 + a x^mu = 0, x >= 0
+        #rewrite as x - x_0 + a x^mu = 0, x >= 0
         #where x = (t - bar{t})/(bar{t} * rho), x_0 = (p_new - bar{t})/(bar{t} * rho),
         #      a = bar{f} / (A * bar{t} * rho)
         x = newton(x_0_arr = (point_new - self.freeflowtimes) / (self.rho * self.freeflowtimes),
                    a_arr = self.capacities / (A * self.rho * self.freeflowtimes),
                    mu = self.mu)
         argmin = (1 + self.rho * x) * self.freeflowtimes
-        #print('my result argmin = ' + str(argmin))
         return argmin

@@ -42,5 +42,5 @@ class PrimalDualCalculator:
         return - self.phi_big_oracle.grad(times)
     
     #for Frank-Wolfe algorithm
-    def times_function(self, flows):
+    def get_times(self, flows):
         return self.freeflowtimes * (1.0 + self.rho * np.power(flows / self.capacities, 1.0 / self.mu))

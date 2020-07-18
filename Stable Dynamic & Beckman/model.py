@@ -75,7 +75,8 @@ class Model:
                                                           self.graph.freeflow_times, self.graph.capacities,
                                                           rho = self.rho, mu = self.mu)
         if composite == True or solver_name == 'fwm':
-            print('Composite optimization...')
+            if not solver_name == 'fwm':
+                print('Composite optimization...')
             oracle = phi_big_oracle  
             prox = h_oracle.prox
         else:
