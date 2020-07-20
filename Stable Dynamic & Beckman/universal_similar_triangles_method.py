@@ -72,11 +72,12 @@ def universal_similar_triangles_method(oracle, prox, primal_dual_oracle,
             
     result = {'times': t, 'flows': flows_weighted,
               'iter_num': it_counter,
-              'res_msg' : 'success' if success else 'iterations number exceeded'}
+              'res_msg': 'success' if success else 'iterations number exceeded'}
     if save_history:
         result['history'] = history.dict
     if verbose:
-        print('Result: ' + result['res_msg'], 'Total iters: ' + str(it_counter))
+        print('Result: ' + result['res_msg'])
+        print('Total iters: ' + str(it_counter))
         print(state_msg)
         print('Oracle elapsed time: {:.0f} sec'.format(oracle.time))
     return result
