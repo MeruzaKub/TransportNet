@@ -1,7 +1,7 @@
 import numpy as np
 
 class PrimalDualCalculator:
-    def __init__(self, phi_big_oracle, h_oracle, freeflowtimes, capacities, rho = 10.0, mu = 0.25):
+    def __init__(self, phi_big_oracle, h_oracle, freeflowtimes, capacities, rho = 10.0, mu = 0.25, base_flows = None):
         self.links_number = len(freeflowtimes)
         self.rho = rho
         self.mu = mu
@@ -11,6 +11,14 @@ class PrimalDualCalculator:
         self.phi_big_oracle = phi_big_oracle
         self.h_oracle = h_oracle
         self.dual_gap_init = None
+        if mu == 0:
+            if base_flows is None:
+                raise TypeError("Admissible flows should be given")
+            elif np.any(base_flows < 0) or np.any(base_flows >= capacities):
+                raise ValueError("Admissible flows should be non-negative and less than capacities")
+            else:
+                self.base_flows = base_flows
+                self.alpha = 1 - np.max(base_flows / capacities)
         
     def __call__(self, flows, times):
         gap = self.duality_gap(times, flows)
@@ -36,7 +44,12 @@ class PrimalDualCalculator:
         return self.h_oracle.conjugate_func(flows)
     
     def duality_gap(self, times, flows):
-        return self.dual_func_value(times) + self.primal_func_value(flows)
+        if self.mu > 0:
+            return self.dual_func_value(times) + self.primal_func_value(flows)
+        else:
+            beta = max(0, np.max(flows / self.capacities) - 1)
+            admissible_flows = (beta * self.base_flows + self.alpha * flows) / (self.alpha + beta)
+            return self.dual_func_value(times) + self.primal_func_value(admissible_flows)
     
     def get_flows(self, times):
         return - self.phi_big_oracle.grad(times)
