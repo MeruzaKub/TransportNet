@@ -59,7 +59,7 @@ class Model:
             solver_func = ugd.universal_gradient_descent_method
             starting_msg = 'Universal gradient descent method...'
             if not 'L_init' in solver_kwargs:
-                solver_kwargs['L_init'] = 1.0
+                solver_kwargs['L_init'] = self.graph.max_path_length**0.5 * self.total_od_flow
         elif solver_name == 'wda':
             solver_func = wda.weighted_dual_averages_method
             starting_msg = 'Weighted dual averages method...'

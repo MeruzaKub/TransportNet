@@ -4,9 +4,23 @@ from history import History
 
 def weighted_dual_averages_method(oracle, prox, primal_dual_oracle,
                                   t_start, max_iter = 1000,
-                                  eps = 1e-5, eps_abs = None, verbose_step = 100,
-                                  verbose = False, save_history = False):
-    iter_step = verbose_step
+                                  eps = 1e-5, eps_abs = None, stop_crit = 'dual_gap_rel',
+                                  verbose_step = 100, verbose = False, save_history = False):
+    if stop_crit == 'dual_gap_rel':
+        def crit():
+            return duality_gap <= eps * duality_gap_init
+    elif stop_crit == 'dual_gap':
+        def crit():
+            return duality_gap <= eps_abs
+    elif stop_crit == 'max_iter':
+        def crit():
+            return it_counter == max_iter
+    elif callable(stop_crit):
+        crit = stop_crit
+    else:
+        raise ValueError("stop_crit should be callable or one of the following names: \
+                         'dual_gap', 'dual_gap_rel', 'max iter'")
+    
     A = 0.0
     t = np.copy(t_start)
     grad_sum = np.zeros(len(t_start))
@@ -21,8 +35,6 @@ def weighted_dual_averages_method(oracle, prox, primal_dual_oracle,
         history.update(0, primal, dual, duality_gap_init)
     if verbose:
         print(state_msg)
-    if eps_abs is None:
-        eps_abs = eps * duality_gap_init
     
     success = False
     
@@ -43,10 +55,10 @@ def weighted_dual_averages_method(oracle, prox, primal_dual_oracle,
         primal, dual, duality_gap, state_msg = primal_dual_oracle(flows_weighted, t_weighted)
         if save_history:
             history.update(it_counter, primal, dual, duality_gap)
-        if verbose and (it_counter % iter_step == 0):
+        if verbose and (it_counter % verbose_step == 0):
             print('\nIterations number: {:d}'.format(it_counter))
             print(state_msg, flush = True)
-        if duality_gap < eps_abs:
+        if crit():
             success = True
             break
             
@@ -56,7 +68,7 @@ def weighted_dual_averages_method(oracle, prox, primal_dual_oracle,
     if save_history:
         result['history'] = history.dict
     if verbose:
-        print('Result: ' + result['res_msg'])
+        print('\nResult: ' + result['res_msg'])
         print('Total iters: ' + str(it_counter))
         print(state_msg)
         print('Oracle elapsed time: {:.0f} sec'.format(oracle.time))

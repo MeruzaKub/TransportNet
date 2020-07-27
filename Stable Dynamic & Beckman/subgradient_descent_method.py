@@ -2,10 +2,23 @@ import numpy as np
 from history import History
 
 def subgradient_descent_method(oracle, prox, primal_dual_oracle,
-                                        t_start, max_iter = 1000,
-                                        eps = 1e-5, eps_abs = None, verbose_step = 100,
-                                        verbose = False, save_history = False):    
-    iter_step = verbose_step
+                               t_start, max_iter = 1000,
+                               eps = 1e-5, eps_abs = None, stop_crit = 'dual_gap_rel',
+                               verbose_step = 100, verbose = False, save_history = False):    
+    if stop_crit == 'dual_gap_rel':
+        def crit():
+            return duality_gap <= eps * duality_gap_init
+    elif stop_crit == 'dual_gap':
+        def crit():
+            return duality_gap <= eps_abs
+    elif stop_crit == 'max_iter':
+        def crit():
+            return it_counter == max_iter
+    elif callable(stop_crit):
+        crit = stop_crit
+    else:
+        raise ValueError("stop_crit should be callable or one of the following names: \
+                         'dual_gap', 'dual_gap_rel', 'max iter'")
     A = 0.0
     t = np.copy(t_start)
     t_weighted = np.zeros(len(t_start))
@@ -34,10 +47,10 @@ def subgradient_descent_method(oracle, prox, primal_dual_oracle,
         primal, dual, duality_gap, state_msg  = primal_dual_oracle(flows_weighted, t_weighted)
         if save_history:
             history.update(it_counter, primal, dual, duality_gap)
-        if verbose and (it_counter % iter_step == 0):
+        if verbose and (it_counter % verbose_step == 0):
             print('\nIterations number: {:d}'.format(it_counter))
             print(state_msg, flush = True)
-        if duality_gap < eps_abs:
+        if crit():
             success = True
             break
             
@@ -47,7 +60,8 @@ def subgradient_descent_method(oracle, prox, primal_dual_oracle,
     if save_history:
         result['history'] = history.dict
     if verbose:
-        print('Result: ' + result['res_msg'], 'Total iters: ' + str(it_counter))
+        print('\nResult: ' + result['res_msg'])
+        print('Total iters: ' + str(it_counter))
         print(state_msg)
         print('Oracle elapsed time: {:.0f} sec'.format(oracle.time))
     return result
