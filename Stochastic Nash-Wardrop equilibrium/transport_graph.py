@@ -3,9 +3,11 @@
 # edges indexed from 0 to ...
 #import networkx as nx
 import numpy as np
+import copy
 import scipy.sparse as sp
 import math
-from numba import jitclass, int64, float64
+from numba.experimental import jitclass
+from numba import int64, float64
 
 spec = [
     ('_nodes_number', int64),
@@ -96,15 +98,12 @@ class JitTransportGraph:
     
     
 class TransportGraph:
-    def __init__(self, graph_data, maxpath_const = 3):
-        graph_table = graph_data['graph_table']
-
-        nodes_number = graph_data['kNodesNumber']
-        links_number = graph_data['kLinksNumber']
-        max_path_length = maxpath_const * int(math.sqrt(nodes_number))
+    def __init__(self, graph_table, nodes_number, links_number, maxpath_const = 3):
+        max_path_length = maxpath_const * int(math.sqrt(links_number))
         
-        capacities = np.array(graph_table[['Capacity']], dtype = 'float64').flatten()
-        free_flow_times = np.array(graph_table[['Free Flow Time']], dtype = 'float64').flatten()  
+        #define data for edge properties
+        capacities = np.array(graph_table[['capacity']], dtype = 'float64').flatten()
+        free_flow_times = np.array(graph_table[['free_flow_time']], dtype = 'float64').flatten()  
         sources = np.zeros(links_number, dtype = 'int64')
         targets = np.zeros(links_number, dtype = 'int64')
         
@@ -112,7 +111,7 @@ class TransportGraph:
         out_incident_matrix = sp.lil_matrix((nodes_number, links_number), dtype = 'int64')
         self._nodes_indices = {}
         index = 0
-        for edge, row in enumerate(graph_table[['Init node', 'Term node']].itertuples()):
+        for edge, row in enumerate(graph_table[['init_node', 'term_node']].itertuples()):
             if row[1] not in self._nodes_indices:
                 self._nodes_indices[row[1]] = index
                 index += 1
@@ -176,9 +175,10 @@ class TransportGraph:
         #return list(self.transport_graph.predecessors(vertex))
         return self._jit_graph.predecessors(node_index)
     
+    #TODO: this func should be removed, nodes are already indexed in model.py:
     def get_nodes_indices(self, nodes):
         return [self._nodes_indices[node] for node in nodes]
-    
+    #TODO: this func should be removed, nodes are already indexed in model.py:
     def get_node_index(self, node):
         return self._nodes_indices[node]
         

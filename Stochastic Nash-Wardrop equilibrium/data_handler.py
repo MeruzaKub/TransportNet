@@ -5,46 +5,33 @@ import pandas as pd
 
 #TODO: DOCUMENTATION!!!
 class DataHandler:
-    def GetGraphData(self, file_name, columns_order):
+    def GetGraphData(self, file_name, columns):
         graph_data = {}
         
+        metadata = ''
         with open(file_name, 'r') as myfile:
-            data = myfile.read()
-
-        graph_data['kNodesNumber'] = scanf('<NUMBER OF NODES> %d', data)[0]
-        graph_data['kLinksNumber'] = scanf('<NUMBER OF LINKS> %d', data)[0]
+            for index, line in enumerate(myfile):
+                if re.search(r'^~', line) is not None:
+                    skip_lines = index + 1
+                    headlist = re.findall(r'[\w]+', line)
+                    break
+                else:
+                    metadata += line
+        graph_data['nodes number'] = scanf('<NUMBER OF NODES> %d', metadata)[0]
+        graph_data['links number'] = scanf('<NUMBER OF LINKS> %d', metadata)[0]
+        graph_data['zones number'] = scanf('<NUMBER OF ZONES> %d', metadata)[0]
+        first_thru_node = scanf('<FIRST THRU NODE> %d', metadata)[0]
         
-
-        headlist = re.compile("\t"
-                             "[a-zA-Z ]+"
-                             "[\(\)\/\w]*").findall(data)
-
+        dtypes = {'init_node' : np.int32, 'term_node' : np.int32, 'capacity' : np.float64, 'length': np.float64,
+                  'free_flow_time': np.float64, 'b': np.float64, 'power': np.float64, 'speed': np.float64,'toll': np.float64,
+                  'link_type' : np.int32}
+        df = pd.read_csv(file_name, names = headlist, dtype = dtypes, skiprows = skip_lines, sep = r'[\s;]+', engine='python',
+                         index_col = False)
+        df = df[columns]
         
-        my_headlist = ['Init node', 'Term node', 'Capacity', 'Free Flow Time']
-        
-        datalist = re.compile("[\t0-9.]+\t;").findall(data)
-
-        datalist = [line.strip('[\t;]') for line in datalist]
-        datalist = [line.split('\t') for line in datalist]
-
-        df = pd.DataFrame(np.asarray(datalist)[:, columns_order], columns = my_headlist)
-        #df = pd.DataFrame(np.asarray(datalist)[:, range(0, len(headlist))], columns = headlist)
-        #df = df[list(np.array(headlist)[columns_order])]
-        #print(list(np.array(headlist)[[0, 1, 2, 4]]))
-        
-        #init nodes
-        df['Init node'] = pd.to_numeric(df['Init node'], downcast = 'integer')
-        #final nodes
-        df['Term node'] = pd.to_numeric(df['Term node'], downcast = 'integer')
-
-        #capacities
-        df['Capacity'] = pd.to_numeric(df['Capacity'], downcast = 'float')
-        #free flow times
-        df['Free Flow Time'] = pd.to_numeric(df['Free Flow Time'], downcast = 'float')
-
-        #Table for graph ready!
+        df.insert(loc = list(df).index('init_node') + 1, column = 'init_node_thru', value = (df['init_node'] >= first_thru_node))
+        df.insert(loc = list(df).index('term_node') + 1, column = 'term_node_thru', value = (df['term_node'] >= first_thru_node))
         graph_data['graph_table'] = df
-        
         return graph_data
     
     
@@ -53,34 +40,33 @@ class DataHandler:
             trips_data = myfile.read()
         
         total_od_flow = scanf('<TOTAL OD FLOW> %f', trips_data)[0]
-
-        #kZonesNumber = scanf('<NUMBER OF ZONES> %d', trips_data)[0]
-        p = re.compile("Origin[ \t]+[\d]+")
-        origins_list = p.findall(trips_data)
-        origins = np.array([int(re.sub('[a-zA-Z ]', '', line)) for line in origins_list])
-
-        p = re.compile("\n"
-                       "[0-9.:; \n]+"
-                       "\n\n")
-        res_list = p.findall(trips_data)
-        res_list = [re.sub('[\n \t]', '', line) for line in res_list]
+        #zones_number = scanf('<NUMBER OF ZONES> %d', trips_data)[0]
+        
+        origins_data = re.findall(r'Origin[\s\d.:;]+', trips_data)
 
         graph_correspondences = {}
-        for origin_index in range(0, len(origins)):
-            origin_correspondences = res_list[origin_index].strip('[\n;]').split(';')
-            graph_correspondences[origins[origin_index]] = dict([scanf("%d:%f", line)
-                                  for line in origin_correspondences])
+        for data in origins_data:
+            origin_index = scanf('Origin %d', data)[0]
+            origin_correspondences = re.findall(r'[\d]+\s+:[\d.\s]+;', data)
+            targets = []
+            corrs_vals = []
+            for line in origin_correspondences:
+                target, corrs = scanf('%d : %f', line)
+                targets.append(target)
+                corrs_vals.append(corrs)
+            graph_correspondences[origin_index] = {'targets' : targets, 'corrs' : corrs_vals}
         return graph_correspondences, total_od_flow
+    
 
     def ReadAnswer(self, filename):
         with open(filename) as myfile:
             lines = myfile.readlines()
-        lines = np.array(lines)[range(1, len(lines))]
-        values_dict = {'flow': [], 'time': []}
+        lines = lines[1 :]
+        flows = []
+        times = []
         for line in lines:
-            line = line.strip('[ \n]')
-            nums = line.split(' \t')
-            values_dict['flow'].append(float(nums[2]))
-            values_dict['time'].append(float(nums[3]))
-        return values_dict
+            _, _, flow, time = scanf('%d %d %f %f', line)
+            flows.append(flow)
+            times.append(time)
+        return {'flows' : flows, 'times' : times}
             
