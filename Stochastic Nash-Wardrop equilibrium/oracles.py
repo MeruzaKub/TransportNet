@@ -6,7 +6,11 @@ from scipy.special import expit
 import numpy as np
 import time
 from transport_graph import JitTransportGraph
-from numba import jit, jitclass, int32, int64, float64
+from numba.experimental import jitclass
+from numba import jit, int32, int64, float64
+from numba import njit
+
+#TODO PhiBigOracle should memorize func and grad at least for 2 points.
 
 @jit(["float64(float64[:])"])
 def logsumexp(ns):
@@ -16,7 +20,7 @@ def logsumexp(ns):
     ds = ns - nmax
     exp_sum = np.exp(ds).sum()
     return nmax + np.log(exp_sum)
-
+  
 class BaseOracle(object):
     """
     Base class for implementation of oracles.
@@ -33,14 +37,49 @@ class BaseOracle(object):
         """
         raise NotImplementedError('Grad oracle is not implemented.')
         
+    def prox(self, p, A, x_start = None):
+        """
+            Calculates prox of the function f(x) at point p:
+            prox_f (p) = argmin_{x in Q} 0.5 ||x - p||^2 + A * f(x)
+            p - point
+            Q - feasible set
+            A - constant
+            x_start - start point for iterative minimization method 
+        """
+        raise NotImplementedError('Prox of the function is not implemented.')
+        
+    def __add__(self, other):
+        return AdditiveOracle(self, other)
+
+        
+class AdditiveOracle(BaseOracle):
+    def __init__(self, *oracles):
+        self.oracles = oracles
+                 
+    def func(self, x):
+        func = 0
+        for oracle in self.oracles:
+            func += oracle.func(x)
+        return func
+        
+    def grad(self, x):
+        grad = np.zeros(len(x))
+        for oracle in self.oracles:
+            grad += oracle.grad(x)
+        return grad
+    
+    @property
+    def time(self): #getter
+        return np.sum([oracle.time for oracle in self.oracles])
+        
 
 class AutomaticOracle(BaseOracle):
     def __init__(self, source, graph, source_correspondences, gamma = 1.0):
         #stock graph
         self._graph = graph
         self._source = source
-        corr_targets = np.array(graph.get_nodes_indices(source_correspondences.keys()), dtype = 'int64')
-        corr_values = np.array(list(source_correspondences.values()), dtype = 'float64')
+        corr_targets = np.array(graph.get_nodes_indices(source_correspondences['targets']), dtype = 'int64')
+        corr_values = np.array(source_correspondences['corrs'], dtype = 'float64')
         nonzero_indices = np.nonzero(corr_values)
         corr_targets = corr_targets[nonzero_indices]
         corr_values = corr_values[nonzero_indices]
@@ -244,7 +283,108 @@ class PhiBigOracle(BaseOracle):
         if self.t_current is None or np.any(self.t_current != t_parameter):
             self._reset(t_parameter)
         return self.entropy_current
-         
+
+    
+#Newton's method for HOracle
+@njit
+def newton(x_0_arr, a_arr, mu,
+           tol = 1e-7, max_iter = 1000):
+    """
+    Newton method for equation x - x_0 + a x^mu = 0, x >= 0
+    """
+    res = np.empty(len(x_0_arr), dtype = np.float_)
+    for i in range(len(x_0_arr)):
+        x_0 = x_0_arr[i]
+        a = a_arr[i]
+        if x_0 <= 0:
+            res[i] = 0
+            continue
+        x = min(x_0, (x_0 / a) ** (1 / mu))
+        for it in range(max_iter):
+            x_next = x - f(x, x_0, a, mu) / der_f(x, x_0, a, mu)
+            if x_next <= 0:
+                x_next = 0.1 * x
+            x = x_next
+            if np.abs(f(x, x_0, a, mu)) < tol:
+                break
+        res[i] = x
+    return res
+
+@njit
+def f(x, x_0, a, mu):
+    return x - x_0 + a * x ** mu
+
+@njit
+def der_f(x, x_0, a, mu):
+    return 1.0 + a * mu * x ** (mu - 1)
+
+class HOracle(BaseOracle):
+    def __init__(self, freeflowtimes, capacities, rho = 10.0, mu = 0.25):  
+        self.links_number = len(freeflowtimes)
+        self.rho = rho
+        self.mu = mu
+        self.freeflowtimes = np.copy(freeflowtimes)
+        self.capacities = np.copy(capacities)
+        
+        self.time = 0
+    
+    def func(self, t_parameter): 
+        """
+        Computes value of the function h(times) = \sum_i sigma^*(times[i])
+        """
+        if self.mu == 0:
+            h_func = np.dot(self.capacities, np.maximum(t_parameter - self.freeflowtimes,0))
+        else:
+            h_func = np.sum(self.capacities * (t_parameter - self.freeflowtimes) * 
+                                      (np.maximum(t_parameter - self.freeflowtimes, 0.0) / 
+                                       (self.rho * self.freeflowtimes)) ** self.mu) / (1.0 + self.mu)
+        return h_func
+    
+    def conjugate_func(self, flows):
+        """
+        Computes the conjugate of the function h(t):
+        h^*(flows) = \sum_i sigma(flows[i]), since h(t) is a separable function
+        """
+        if self.mu == 0:
+            return np.dot(self.freeflowtimes, flows) 
+        else:
+            return np.dot(self.freeflowtimes * flows, 
+                          self.rho * self.mu / (1.0 + self.mu) * 
+                          (flows / self.capacities) ** (1.0 / self.mu) + 1.0)
+    
+    def grad(self, t_parameter):
+        if self.mu == 0:
+            h_grad = self.capacities
+        else:
+            h_grad = self.capacities * (np.maximum(t_parameter - self.freeflowtimes, 0.0) / 
+                                       (self.rho * self.freeflowtimes)) ** self.mu
+        return h_grad
+    
+    def prox(self, grad, point, A):
+        """
+        Computes argmin_{t: t \in Q} <g, t> + A / 2 * ||t - p||^2 + h(t)
+        where Q - the feasible set {t: t >= free_flow_times},
+              A - constant, g - (sub)gradient vector, p - point at which prox is calculated
+        """
+        #rewrite as A/2 ||t - p_new||^2 + h(t)
+        point_new = point - grad / A
+        if self.mu == 0:
+            return np.maximum(point_new - self.capacities / A, self.freeflowtimes)
+        elif self.mu == 1:
+            pass
+        elif self.mu == 0.5:
+            pass
+        elif self.mu == 0.25:
+            pass
+        #rewrite as x - x_0 + a x^mu = 0, x >= 0
+        #where x = (t - bar{t})/(bar{t} * rho), x_0 = (p_new - bar{t})/(bar{t} * rho),
+        #      a = bar{f} / (A * bar{t} * rho)
+        x = newton(x_0_arr = (point_new - self.freeflowtimes) / (self.rho * self.freeflowtimes),
+                   a_arr = self.capacities / (A * self.rho * self.freeflowtimes),
+                   mu = self.mu)
+        argmin = (1 + self.rho * x) * self.freeflowtimes
+        return argmin
+
 """    
     def pickle_func(oracle, args):
         return oracle._process_func(*args)
