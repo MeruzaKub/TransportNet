@@ -32,6 +32,7 @@ More information about the models can be found in [[Nesterov-de Palma](https://l
 # [Stochastic Nash-Wardrop Equilibria in the Beckmann model](https://github.com/MeruzaKub/TransportNet/tree/master/Stochastic%20Nash-Wardrop%20equilibrium)
 Agents’ behavior is not completely rational, what is described by the introduction of Markov logit dynamics: any driver selects a route randomly according to the Gibbs’ distribution taking into account current time costs on the edges of the graph.
 <img src="https://render.githubusercontent.com/render/math?math=\gamma > 0"> is a stochasticity parameter (when <img src="https://render.githubusercontent.com/render/math?math=\gamma \rightarrow 0"> the model boils down to the ordinary Beckmann model). The figure below shows convergence of flows in stochastic equilibrium to equilibrium flows in non-stochastic case as  <img src="https://render.githubusercontent.com/render/math?math=\gamma"> tends to zero.
+
 <img src="https://github.com/MeruzaKub/TransportNet/blob/master/Stochastic%20Nash-Wardrop%20equilibrium/pics/anaheim_error_vs_gamma_eps_1e-3.png" width="500">
 
 ## How to Cite
