@@ -38,17 +38,11 @@ class TransportGraph:
         #save properties to graph
         self.graph.edge_properties["freeflow_times"] = ep_freeflow_time
         self.graph.edge_properties["capacities"] = ep_capacity
-        
-        self.pred_to_edge = [{}] * self.nodes_number
-        for node in range(self.nodes_number):
-            self.pred_to_edge[node] = {source: edge 
-                                             for source, _, edge in self.in_edges(node)}
-       
-    def get_graphtool(self):
-        return self.graph
+
     
-    def get_edges(self):
-        return self.graph.get_edges()
+    @property
+    def edges(self):
+        return self.graph.get_edges([self.graph.edge_index])
 
     def successors(self, node):
         return self.graph.get_out_neighbors(node)

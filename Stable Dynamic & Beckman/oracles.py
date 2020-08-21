@@ -3,8 +3,9 @@ from collections import defaultdict
 #from scipy.misc import logsumexp
 import numpy as np
 import time
+import numba
 from numba import njit
-from numba.typed import List
+from numba.typed import List, Dict
 
 
 @njit
@@ -45,14 +46,17 @@ def get_tree_order(nodes_number, targets, pred_arr):
 """
 
 @njit
-def get_flows(nodes_number, edges_number, targets, target_flows, pred_arr, pred_edges, sorted_vertices): 
+def get_flows(nodes_number, edges_number, targets, target_flows, 
+              pred_arr, sorted_vertices, pred_to_edges, t_parameter):
     flows = np.zeros(edges_number, dtype = np.float_)
     vertex_flows = np.zeros(nodes_number, dtype = np.float_)
     vertex_flows[targets] = target_flows
-    for i, vertex in enumerate(sorted_vertices):
-        edge = pred_edges[i]
-        flows[edge] = vertex_flows[vertex]
+    
+    for vertex in sorted_vertices:
         pred = pred_arr[vertex]
+        edges = pred_to_edges[vertex][pred]
+        edge = edges[np.argmin(t_parameter[edges])]
+        flows[edge] = vertex_flows[vertex]
         vertex_flows[pred] += vertex_flows[vertex]
     return flows
 
@@ -115,12 +119,14 @@ class AutomaticOracle(BaseOracle):
     kGamma -> +0
     """
 
-    def __init__(self, source, graph, source_correspondences):
+    def __init__(self, source, graph, source_correspondences, pred_to_edges):
         self.graph = graph
         self.source = source
 
         self.corr_targets = np.array(source_correspondences['targets'])
         self.corr_values = np.array(source_correspondences['corrs'])
+        
+        self.pred_to_edges = pred_to_edges
         
         self.flows = None
         self.distances = None
@@ -134,9 +140,9 @@ class AutomaticOracle(BaseOracle):
     #correct answer if func calculated flows!
     def grad(self, t_parameter):
         sorted_vertices = get_tree_order(self.graph.nodes_number, self.corr_targets, self.pred_map)
-        pred_edges = np.array([self.graph.pred_to_edge[vertex][self.pred_map[vertex]] for vertex in sorted_vertices])
         flows = get_flows(self.graph.nodes_number, self.graph.links_number, 
-                          self.corr_targets, self.corr_values, self.pred_map, pred_edges, sorted_vertices)
+                          self.corr_targets, self.corr_values, 
+                          self.pred_map, sorted_vertices, self.pred_to_edges, t_parameter)
         return - flows
         
     def update_shortest_paths(self, t_parameter):
@@ -150,6 +156,25 @@ class AutomaticOracle(BaseOracle):
         self.potentials = np.where(np.isinf(distances), max_dist, distances)
         self.diff_potentials = self.potentials[self.graph.terms] - self.potentials[self.graph.inits]
 
+        
+def get_pred_to_edges(graph):
+    pred_to_edges = List()
+    dtype = graph.edges.dtype
+    numba_type = numba.from_dtype(dtype)
+    for node in range(graph.nodes_number):
+        temp_dict = {}
+        for source, _, edge in graph.in_edges(node):
+            if source in temp_dict:
+                temp_dict[source].append(edge)
+            else:
+                temp_dict[source] = [edge]
+        pred_to_edges_cur = Dict.empty(key_type = numba_type, value_type = numba_type[:])
+        for source in temp_dict:
+            pred_to_edges_cur[source] = np.array(temp_dict[source], dtype = dtype)
+        pred_to_edges.append(pred_to_edges_cur)
+        
+    return pred_to_edges
+
 
 class PhiBigOracle(BaseOracle):
     def __init__(self, graph, correspondences, processes_number = None):
@@ -161,9 +186,11 @@ class PhiBigOracle(BaseOracle):
             self.processes_number = len(correspondences)
         self.t_current = self.func_current = self.grad_current = None
         
+        pred_to_edges = get_pred_to_edges(graph)
+        
         self.auto_oracles = []
         for source, source_correspondences in self.correspondences.items():
-            self.auto_oracles.append(AutomaticOracle(source, self.graph, source_correspondences))
+            self.auto_oracles.append(AutomaticOracle(source, self.graph, source_correspondences, pred_to_edges))
         self.time = 0.0
     
     def _reset(self, t_parameter):
