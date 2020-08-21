@@ -80,7 +80,7 @@ class Model:
                     where Q - the feasible set {t: t >= free_flow_times},
                     A - constant, g - (sub)gradient vector, p - point at which prox is calculated
                 """
-                return np.maximum(point - grad / A, self.graph.freeflow_times)
+                return np.maximum(point - grad / A, self.graph.free_flow_times)
             prox = prox_func
         print('Oracles created...')
         print(starting_msg)
