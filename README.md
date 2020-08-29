@@ -1,6 +1,6 @@
 # [Stable Dynamic & Beckmann models](https://github.com/MeruzaKub/TransportNet/tree/master/Stable%20Dynamic%20%26%20Beckman)
 
-The project contains implementations of several primal-dual subgradient methods for searching traffic equilibria in the Stable Dynamic model and the Beckmann model. 
+The project contains implementations of several primal-dual subgradient methods for searching traffic equilibria in the Stable Dynamics model and the Beckmann model. 
 Results of experiments on the [Anaheim transportation network](https://github.com/bstabler/TransportationNetworks) are included.
 
 The following methods are implemented:
