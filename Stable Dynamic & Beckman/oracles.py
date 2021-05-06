@@ -150,11 +150,7 @@ class AutomaticOracle(BaseOracle):
         self.distances, self.pred_map = self.graph.shortest_distances(self.source, self.corr_targets, t_parameter)
         self.time += time.time() - tic
         
-    def update_potentials(self, t_parameter):
-        distances, _ = self.graph.shortest_distances(self.source, None, t_parameter)
-        max_dist = np.max(distances[np.nonzero(np.isfinite(distances))])
-        self.potentials = np.where(np.isinf(distances), max_dist, distances)
-        self.diff_potentials = self.potentials[self.graph.terms] - self.potentials[self.graph.inits]
+
 
         
 def get_pred_to_edges(graph):
