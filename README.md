@@ -23,7 +23,7 @@ Native installation of [graph-tool](https://graph-tool.skewed.de/) on Windows is
 https://hub.docker.com/r/ziggerzz/graph-tool-extra 
 
 ## How to Cite
-1. Article: [arXiv:2008.02418](https://arxiv.org/abs/2008.02418)
+1. Kubentayeva, M.; Gasnikov, A. Finding Equilibria in the Traffic Assignment Problem with Primal-Dual Gradient Methods for Stable Dynamics Model and Beckmann Model. Mathematics 2021, 9, 1217. https://doi.org/10.3390/math9111217
 2. The source code: Kubentayeva M. TransportNet. https://github.com/MeruzaKub/TransportNet. Accessed Month, Day, Year.
 
 ## More Resources
