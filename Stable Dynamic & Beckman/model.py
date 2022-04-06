@@ -14,6 +14,8 @@ import weighted_dual_averages_method as wda
 
 
 class Model:
+    node_type = np.int64
+    
     def __init__(self, graph_data, graph_correspondences, total_od_flow, mu = 0.25, rho = 0.15):
         self.total_od_flow = total_od_flow
         self.mu = mu
@@ -26,23 +28,25 @@ class Model:
         table = graph_table.copy()
         inits = np.unique(table['init_node'][table['init_node_thru'] == False])
         terms = np.unique(table['term_node'][table['term_node_thru'] == False])
-        through_nodes = np.unique([table['init_node'][table['init_node_thru'] == True], 
-                                   table['term_node'][table['term_node_thru'] == True]])
+        through_nodes = np.unique(np.r_[table['init_node'][table['init_node_thru'] == True].to_numpy(),
+                                        table['term_node'][table['term_node_thru'] == True].to_numpy()])
         
         nodes = np.concatenate((inits, through_nodes, terms))
-        nodes_inds = list(zip(nodes, np.arange(len(nodes))))
+        
+        nodes_inds = list(zip(nodes, np.arange(len(nodes), dtype = self.node_type)))
         init_to_ind = dict(nodes_inds[ : len(inits) + len(through_nodes)])
         term_to_ind = dict(nodes_inds[len(inits) : ])
+        inds_to_nodes = dict(zip(np.arange(len(nodes), dtype = self.node_type), nodes))
         
         table['init_node'] = table['init_node'].map(init_to_ind)
         table['term_node'] = table['term_node'].map(term_to_ind)
         correspondences = {}
         for origin, dests in graph_correspondences.items():
-            dests = copy.deepcopy(dests)
-            correspondences[init_to_ind[origin]] = {'targets' : list(map(term_to_ind.get , dests['targets'])), 
-                                                                     'corrs' : dests['corrs']}
+            if dests['targets']:
+                correspondences[init_to_ind[origin]] = \
+                    {'targets' : np.array([term_to_ind[dest] for dest in dests['targets']], dtype = self.node_type), 
+                     'corrs' : np.array(dests['corrs'])}
             
-        inds_to_nodes = dict(zip(range(len(nodes)), nodes))
         return inds_to_nodes, correspondences, table
 
         

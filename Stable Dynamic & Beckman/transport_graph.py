@@ -25,8 +25,8 @@ class TransportGraph:
         self.freeflow_times = np.array(graph_table[['free_flow_time']], dtype = 'float64').flatten()  
 
         #adding edges to the graph
-        self.inits = np.array(graph_table[['init_node']], dtype = 'int64').flatten()
-        self.terms = np.array(graph_table[['term_node']], dtype = 'int64').flatten()
+        self.inits = np.array(graph_table[['init_node']]).flatten()
+        self.terms = np.array(graph_table[['term_node']]).flatten()
         for index in range(self.links_number):
             init = self.inits[index]
             term = self.terms[index]
@@ -67,7 +67,7 @@ class TransportGraph:
                                                     target = targets,
                                                     weights = ep_time_map,
                                                     pred_map = True)
-        return distances, pred_map.a
+        return distances, pred_map.get_array()
 
 #    def nodes_number(self):
 #        return self.nodes_number

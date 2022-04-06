@@ -16,7 +16,10 @@ def get_tree_order(nodes_number, targets, pred_arr):
     sorted_vertices.append(targets[0])
     sorted_vertices.clear()
     for vertex in targets:
+        vertex
         temp = List()
+        temp.append(targets[0])
+        temp.clear()
         while (not visited[vertex]):
             visited[vertex] = True
             if pred_arr[vertex] != vertex:
@@ -27,29 +30,27 @@ def get_tree_order(nodes_number, targets, pred_arr):
         
     return sorted_vertices
 
-"""
-@njit
-def get_tree_order(nodes_number, targets, pred_arr):
-    #get nodes visiting order for flow calculation
-    visited = np.zeros(nodes_number, dtype = np.bool_)
-    sorted_vertices = [0] * 0
-    for vertex in targets:
-        temp = []
-        while (not visited[vertex]):
-            visited[vertex] = True
-            if pred_arr[vertex] != vertex:
-                temp.append(vertex)
-                vertex = pred_arr[vertex]
-        sorted_vertices[0:0] = temp
+# @njit
+# def get_tree_order(nodes_number, targets, pred_arr):
+#     #get nodes visiting order for flow calculation
+#     visited = np.zeros(nodes_number, dtype = np.bool_)
+#     sorted_vertices = [0] * 0
+#     for vertex in targets:
+#         temp = []
+#         while (not visited[vertex]):
+#             visited[vertex] = True
+#             if pred_arr[vertex] != vertex:
+#                 temp.append(vertex)
+#                 vertex = pred_arr[vertex]
+#         sorted_vertices[0:0] = temp
         
-    return sorted_vertices
-"""
+#     return sorted_vertices
 
 @njit
 def get_flows(nodes_number, edges_number, targets, target_flows, 
               pred_arr, sorted_vertices, pred_to_edges, t_parameter):
-    flows = np.zeros(edges_number, dtype = np.float_)
-    vertex_flows = np.zeros(nodes_number, dtype = np.float_)
+    flows = np.zeros(edges_number, dtype = target_flows.dtype)
+    vertex_flows = np.zeros(nodes_number, dtype = target_flows.dtype)
     vertex_flows[targets] = target_flows
     
     for vertex in sorted_vertices:
@@ -258,6 +259,14 @@ class HOracle(BaseOracle):
         self.mu = mu
         self.freeflowtimes = np.copy(freeflowtimes)
         self.capacities = np.copy(capacities)
+        with np.testing.suppress_warnings() as sup:
+            sup.filter(RuntimeWarning)
+            self.func_coef = self.capacities / (self.rho * self.freeflowtimes) ** self.mu / (1.0 + self.mu)
+            self.grad_coef = self.capacities / (self.rho * self.freeflowtimes) ** self.mu
+        # for centroid free_flow_time =0 -> func_coef = 0, grad_coef = 0
+        self.func_coef = np.where(self.freeflowtimes == 0, 0, self.func_coef)
+        self.grad_coef = np.where(self.freeflowtimes == 0, 0, self.grad_coef)
+        
         
         self.time = 0
     
@@ -266,11 +275,12 @@ class HOracle(BaseOracle):
         Computes value of the function h(times) = \sum_i sigma^*(times[i])
         """
         if self.mu == 0:
-            h_func = np.dot(self.capacities, np.maximum(t_parameter - self.freeflowtimes,0))
+            h_func = np.dot(self.capacities, np.maximum(t_parameter - self.freeflowtimes, 0))
         else:
-            h_func = np.sum(self.capacities * (t_parameter - self.freeflowtimes) * 
-                                      (np.maximum(t_parameter - self.freeflowtimes, 0.0) / 
-                                       (self.rho * self.freeflowtimes)) ** self.mu) / (1.0 + self.mu)
+            h_func = np.dot(self.func_coef, np.maximum(t_parameter - self.freeflowtimes, 0) ** (1.0 + self.mu))
+#             np.sum(self.capacities * (t_parameter - self.freeflowtimes) * 
+#                                       (np.maximum(t_parameter - self.freeflowtimes, 0.0) / 
+#                                        (self.rho * self.freeflowtimes)) ** self.mu) / (1.0 + self.mu)
         return h_func
     
     def conjugate_func(self, flows):
