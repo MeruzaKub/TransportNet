@@ -6,11 +6,11 @@ import transport_graph as tg
 import oracles
 import dual_func_calculator as dfc
 
-import universal_similar_triangles_method as ustm
-import universal_gradient_descent_method as ugd
-import subgradient_descent_method as sd
-import frank_wolfe_method as fwm
-import weighted_dual_averages_method as wda
+from grad_methods import universal_similar_triangles_method as ustm
+from grad_methods import universal_gradient_descent_method as ugd
+from grad_methods import subgradient_descent_method as sd
+from grad_methods import frank_wolfe_method as fwm
+from grad_methods import weighted_dual_averages_method as wda
 
 
 class Model:
